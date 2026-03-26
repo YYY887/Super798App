@@ -52,9 +52,9 @@ jobs:
 
       - name: 读取证书与描述文件
         run: |
-          P12_PATH="$CERT_DIR/证书文件.p12"
-          PROFILE_PATH="$CERT_DIR/描述文件.mobileprovision"
-          PASSWORD_FILE="$CERT_DIR/密码.txt"
+          P12_PATH="$(ls "$CERT_DIR"/*.p12 2>/dev/null | head -n 1)"
+          PROFILE_PATH="$(ls "$CERT_DIR"/*.mobileprovision 2>/dev/null | head -n 1)"
+          PASSWORD_FILE="$(ls "$CERT_DIR"/密码*.txt "$CERT_DIR"/*password*.txt 2>/dev/null | head -n 1)"
 
           if [ ! -f "$P12_PATH" ] || [ ! -f "$PROFILE_PATH" ] || [ ! -f "$PASSWORD_FILE" ]; then
             echo "证书文件不完整，请确认目录 $CERT_DIR 下包含 p12、mobileprovision 和 密码.txt"
@@ -85,6 +85,7 @@ jobs:
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
+          security list-keychains -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security set-keychain-settings -lut 21600 build.keychain
 
@@ -112,7 +113,7 @@ jobs:
             EXPORT_METHOD="app-store"
           fi
 
-          SIGN_IDENTITY="$(security find-identity -v -p codesigning build.keychain | sed -n 's/.*\"\\(.*\\)\"/\\1/p' | head -n 1)"
+          SIGN_IDENTITY="$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/\"/ {print $2; exit}')"
           if [ -z "$SIGN_IDENTITY" ]; then
             echo "未找到可用的签名证书"
             security find-identity -v -p codesigning build.keychain || true
