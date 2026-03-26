@@ -1,17 +1,18 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "Super798",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "fun.mytx.super798",
       "supportsTablet": true
     },
     "android": {
@@ -25,6 +26,25 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "QuickDeviceWidget",
+              "displayName": "设备快捷控制",
+              "description": "显示默认设备并支持开始或结束接水",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium"
+              ]
+            }
+          ]
+        }
+      ]
+    ]
   }
 }
