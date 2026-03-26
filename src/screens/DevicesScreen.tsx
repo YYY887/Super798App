@@ -15,7 +15,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppData } from '../context/AppDataContext';
@@ -44,7 +43,6 @@ export function DevicesScreen() {
   } = useAppData();
   const [scanVisible, setScanVisible] = useState(false);
   const [scanning, setScanning] = useState(true);
-  const [permission, requestPermission] = useCameraPermissions();
   const [editingDeviceId, setEditingDeviceId] = useState('');
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
@@ -95,11 +93,6 @@ export function DevicesScreen() {
   }, [clearMessage, message]);
 
   async function handleOpenScan() {
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) return;
-    }
-
     setScanning(true);
     setScanVisible(true);
   }
@@ -344,17 +337,10 @@ export function DevicesScreen() {
           </View>
 
           <View style={styles.scanCameraWrap}>
-            {permission?.granted ? (
-              <CameraView
-                style={styles.camera}
-                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={({ data }) => handleScan(data)}
-              />
-            ) : (
-              <View style={styles.scanEmpty}>
-                <Text style={styles.scanEmptyText}>未获取到相机权限</Text>
-              </View>
-            )}
+            <View style={styles.scanEmpty}>
+              <Text style={styles.scanEmptyText}>当前安装环境暂时关闭扫码模块</Text>
+              <Text style={styles.scanEmptyHint}>先确认应用稳定启动，再恢复相机能力。</Text>
+            </View>
 
             <View style={styles.scanGuide} pointerEvents="none">
               <View style={styles.scanFrame}>
@@ -710,6 +696,11 @@ const styles = StyleSheet.create({
   },
   scanEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scanEmptyText: { color: '#ffffff', fontSize: 14 },
+  scanEmptyHint: {
+    marginTop: 8,
+    color: 'rgba(255,255,255,0.68)',
+    fontSize: 12,
+  },
   scanFooter: {
     paddingHorizontal: 18,
     paddingTop: 14,
