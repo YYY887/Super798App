@@ -39,18 +39,17 @@ jobs:
         run: |
           WORKSPACE="$(find ios -maxdepth 1 -name '*.xcworkspace' | head -n 1)"
           PROJECT="$(find ios -maxdepth 1 -name '*.xcodeproj' | head -n 1)"
-          APP_SCHEME="Super798"
 
           if [ -n "$WORKSPACE" ]; then
-            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = ENV["APP_SCHEME"]; schemes = data.dig("workspace", "schemes") || data.dig("project", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
+            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = "Super798"; schemes = data.dig("workspace", "schemes") || data.dig("project", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
             echo "XCODE_CONTAINER=$WORKSPACE" >> "$GITHUB_ENV"
             echo "XCODE_CONTAINER_KIND=workspace" >> "$GITHUB_ENV"
           elif [ -n "$PROJECT" ]; then
-            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = ENV["APP_SCHEME"]; schemes = data.dig("project", "schemes") || data.dig("workspace", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
+            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = "Super798"; schemes = data.dig("project", "schemes") || data.dig("workspace", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
             echo "XCODE_CONTAINER=$PROJECT" >> "$GITHUB_ENV"
             echo "XCODE_CONTAINER_KIND=project" >> "$GITHUB_ENV"
           else
-            echo "未找到 iOS 工程文件"
+            echo "未找到 iOS 原生工程文件"
             exit 1
           fi
 
@@ -59,7 +58,7 @@ jobs:
           fi
 
           if [ -z "$SCHEME" ]; then
-            echo "未找到可用 Scheme"
+            echo "未找到可用的主应用 Scheme"
             echo "workspace=$WORKSPACE"
             echo "project=$PROJECT"
             find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -print || true
@@ -67,8 +66,8 @@ jobs:
           fi
 
           echo "XCODE_SCHEME=$SCHEME" >> "$GITHUB_ENV"
-          echo "使用容器: ${WORKSPACE:-$PROJECT}"
-          echo "使用 Scheme: $SCHEME"
+          echo "使用的工程容器: ${WORKSPACE:-$PROJECT}"
+          echo "使用的 Scheme: $SCHEME"
 
       - name: 构建未签名 Archive
         run: |
@@ -101,25 +100,32 @@ jobs:
 
       - name: 手工封装未签名 IPA
         run: |
-          APP_PATH="$(find "$ARCHIVE_PATH" -path "*/Products/*" -name '*.app' -type d | head -n 1)"
+          echo "先从 iOS build 目录中查找 .app"
+          APP_PATH="$(find ios/build -name '*.app' -type d | head -n 1)"
 
           if [ -z "$APP_PATH" ]; then
+            echo "build 目录未找到，改为从 archive 中查找 .app"
             APP_PATH="$(find "$ARCHIVE_PATH" -name '*.app' -type d | head -n 1)"
           fi
 
           if [ -z "$APP_PATH" ]; then
             echo "未在 archive 中找到 .app"
-            /usr/libexec/PlistBuddy -c 'Print :ApplicationProperties' "$ARCHIVE_PATH/Info.plist" || true
-            find "$ARCHIVE_PATH" -maxdepth 6 -print || true
+            echo "当前 build 目录中的 .app 候选："
+            find ios -name "*.app" -type d || true
+            echo "当前 archive 中的 .app 候选："
+            find "$ARCHIVE_PATH" -name "*.app" -type d || true
             exit 1
           fi
 
-          echo "找到应用：$APP_PATH"
+          echo "找到应用目录：$APP_PATH"
+          echo "开始组装 Payload"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
 
+          echo "开始压缩生成未签名 IPA"
           cd "$RUNNER_TEMP/ipa"
           zip -qry "$RUNNER_TEMP/ipa/Super798.ipa" Payload
+          echo "未签名 IPA 已生成：$RUNNER_TEMP/ipa/Super798.ipa"
 
       - name: 上传 IPA
         uses: actions/upload-artifact@v4
