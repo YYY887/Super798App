@@ -39,13 +39,14 @@ jobs:
         run: |
           WORKSPACE="$(find ios -maxdepth 1 -name '*.xcworkspace' | head -n 1)"
           PROJECT="$(find ios -maxdepth 1 -name '*.xcodeproj' | head -n 1)"
+          APP_SCHEME="Super798"
 
           if [ -n "$WORKSPACE" ]; then
-            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); schemes = data.dig("workspace", "schemes") || data.dig("project", "schemes") || []; puts((schemes.first || "").to_s)')"
+            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = ENV["APP_SCHEME"]; schemes = data.dig("workspace", "schemes") || data.dig("project", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
             echo "XCODE_CONTAINER=$WORKSPACE" >> "$GITHUB_ENV"
             echo "XCODE_CONTAINER_KIND=workspace" >> "$GITHUB_ENV"
           elif [ -n "$PROJECT" ]; then
-            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); schemes = data.dig("project", "schemes") || data.dig("workspace", "schemes") || []; puts((schemes.first || "").to_s)')"
+            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = ENV["APP_SCHEME"]; schemes = data.dig("project", "schemes") || data.dig("workspace", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
             echo "XCODE_CONTAINER=$PROJECT" >> "$GITHUB_ENV"
             echo "XCODE_CONTAINER_KIND=project" >> "$GITHUB_ENV"
           else
@@ -54,7 +55,7 @@ jobs:
           fi
 
           if [ -z "$SCHEME" ]; then
-            SCHEME="$(find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -exec basename {} .xcscheme \; | head -n 1)"
+            SCHEME="$(find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -exec basename {} .xcscheme \; | ruby -e 'app_scheme = "Super798"; schemes = STDIN.read.split("\n"); preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
           fi
 
           if [ -z "$SCHEME" ]; then
@@ -104,6 +105,7 @@ jobs:
 
           if [ -z "$APP_PATH" ]; then
             echo "未在 archive 中找到 .app"
+            /usr/libexec/PlistBuddy -c 'Print :ApplicationProperties' "$ARCHIVE_PATH/Info.plist" || true
             find "$ARCHIVE_PATH" -maxdepth 4 -print || true
             exit 1
           fi
