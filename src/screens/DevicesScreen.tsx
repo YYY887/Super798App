@@ -15,13 +15,16 @@ import {
   Text,
   View,
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppData } from '../context/AppDataContext';
+import { useTheme } from '../context/ThemeContext';
 import { formatLiters, formatName } from '../lib/utils';
 
 export function DevicesScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const {
     loading,
     actionLoading,
@@ -43,6 +46,7 @@ export function DevicesScreen() {
   } = useAppData();
   const [scanVisible, setScanVisible] = useState(false);
   const [scanning, setScanning] = useState(true);
+  const [permission, requestPermission] = useCameraPermissions();
   const [editingDeviceId, setEditingDeviceId] = useState('');
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
@@ -93,6 +97,11 @@ export function DevicesScreen() {
   }, [clearMessage, message]);
 
   async function handleOpenScan() {
+    if (!permission?.granted) {
+      const result = await requestPermission();
+      if (!result.granted) return;
+    }
+
     setScanning(true);
     setScanVisible(true);
   }
@@ -200,7 +209,7 @@ export function DevicesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -218,28 +227,28 @@ export function DevicesScreen() {
             {account?.img ? (
               <Image source={{ uri: account.img }} style={styles.avatarImage} />
             ) : (
-              <View style={styles.avatar}>
+              <View style={[styles.avatar, { backgroundColor: theme.actionBlueStrong }]}>
                 <Text style={styles.avatarText}>{account?.name?.slice(0, 1) || '用'}</Text>
               </View>
             )}
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{account?.name || '未登录'}</Text>
-              <Text style={styles.profileMeta}>{account?.pn || '请先完成登录'}</Text>
+              <Text style={[styles.profileName, { color: theme.text }]}>{account?.name || '未登录'}</Text>
+              <Text style={[styles.profileMeta, { color: theme.textMuted }]}>{account?.pn || '请先完成登录'}</Text>
             </View>
           </View>
 
-          <Pressable style={styles.scanButton} onPress={handleOpenScan}>
+          <Pressable style={[styles.scanButton, { backgroundColor: theme.surfaceSoft }]} onPress={handleOpenScan}>
             <View style={styles.scanIcon}>
-              <View style={[styles.scanCorner, styles.scanCornerTopLeft]} />
-              <View style={[styles.scanCorner, styles.scanCornerTopRight]} />
-              <View style={[styles.scanCorner, styles.scanCornerBottomLeft]} />
-              <View style={[styles.scanCorner, styles.scanCornerBottomRight]} />
-              <View style={styles.scanBar} />
+              <View style={[styles.scanCorner, styles.scanCornerTopLeft, { borderColor: theme.actionBlueStrong }]} />
+              <View style={[styles.scanCorner, styles.scanCornerTopRight, { borderColor: theme.actionBlueStrong }]} />
+              <View style={[styles.scanCorner, styles.scanCornerBottomLeft, { borderColor: theme.actionBlueStrong }]} />
+              <View style={[styles.scanCorner, styles.scanCornerBottomRight, { borderColor: theme.actionBlueStrong }]} />
+              <View style={[styles.scanBar, { backgroundColor: theme.actionBlueStrong }]} />
             </View>
           </Pressable>
         </View>
 
-        <View style={styles.statusRow}>
+        <View style={[styles.statusRow, { backgroundColor: theme.surfaceSoft, borderColor: 'transparent' }]}>
           <View style={styles.statusDecorWrap} pointerEvents="none">
             <View style={[styles.waterDrop, styles.statusDropLarge]} />
             <View style={[styles.waterDrop, styles.statusDropMedium]} />
@@ -247,30 +256,32 @@ export function DevicesScreen() {
           </View>
 
           <View style={styles.statusLeft}>
-            <Text style={styles.statusLabel}>当前设备</Text>
-            <Text style={styles.statusValue}>{selectedDevice ? formatName(selectedDevice.name) : '未选择'}</Text>
+            <Text style={[styles.statusLabel, { color: theme.textMuted }]}>当前设备</Text>
+            <Text style={[styles.statusValue, { color: theme.text }]}>{selectedDevice ? formatName(selectedDevice.name) : '未选择'}</Text>
           </View>
           <View style={styles.statusRight}>
-            <Text style={styles.statusBadge}>{isDrinking ? '接水中' : '待开始'}</Text>
-            <Text style={styles.statusMeta}>
+            <Text style={[styles.statusBadge, { backgroundColor: isDrinking ? theme.dangerBg : theme.primarySoft, color: isDrinking ? theme.dangerText : theme.primary }]}>
+              {isDrinking ? '接水中' : '待开始'}
+            </Text>
+            <Text style={[styles.statusMeta, { color: theme.textMuted }]}>
               {isDrinking && deviceStatus ? `${formatLiters(deviceStatus.out)} / ${accScore || 0} 分` : account?.pn || '准备开始'}
             </Text>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>设备列表</Text>
-          <Text style={styles.sectionMeta}>{devices.length} 台</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>设备列表</Text>
+          <Text style={[styles.sectionMeta, { color: theme.textMuted }]}>{devices.length} 台</Text>
         </View>
 
         {loading ? (
-          <View style={styles.emptyBlock}>
+          <View style={[styles.emptyBlock, { backgroundColor: theme.surfaceMuted, borderColor: 'transparent' }]}>
             <ActivityIndicator color="#6faed9" />
-            <Text style={styles.emptyText}>正在加载设备...</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>正在加载设备...</Text>
           </View>
         ) : devices.length === 0 ? (
-          <View style={styles.emptyBlock}>
-            <Text style={styles.emptyText}>暂无设备，先点右上角添加。</Text>
+          <View style={[styles.emptyBlock, { backgroundColor: theme.surfaceMuted, borderColor: 'transparent' }]}>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>暂无设备，先点右上角添加。</Text>
           </View>
         ) : (
           devices.map((device) => {
@@ -280,7 +291,12 @@ export function DevicesScreen() {
             return (
               <Pressable
                 key={device.id}
-                style={[styles.deviceItem, isSelected ? styles.deviceItemSelected : null]}
+                style={[
+                  styles.deviceItem,
+                  { backgroundColor: theme.surfaceMuted, borderColor: 'transparent' },
+                  isSelected ? styles.deviceItemSelected : null,
+                  isSelected ? { borderColor: 'transparent', backgroundColor: theme.surfaceSoft } : null,
+                ]}
                 onPress={() => setSelectedId(device.id)}
                 onLongPress={() => handleLongPress(device.id)}
                 delayLongPress={450}
@@ -292,37 +308,41 @@ export function DevicesScreen() {
 
                 <View style={styles.deviceMain}>
                   <View style={styles.deviceTitleRow}>
-                    <Text style={styles.deviceName}>{formatName(device.name)}</Text>
-                    <Text style={[styles.deviceTag, device.online ? styles.tagOnline : styles.tagOffline]}>
+                    <Text style={[styles.deviceName, { color: theme.text }]}>{formatName(device.name)}</Text>
+                    <Text style={[styles.deviceTag, device.online ? styles.tagOnline : styles.tagOffline, device.online ? { backgroundColor: theme.successBg, color: theme.successText } : { backgroundColor: theme.surfaceSoft, color: theme.textMuted }]}>
                       {device.online ? '在线' : '离线'}
                     </Text>
-                    <Text style={[styles.deviceTag, currentStatus === '空闲' ? styles.tagIdle : styles.tagBusy]}>
+                    <Text style={[styles.deviceTag, currentStatus === '空闲' ? styles.tagIdle : styles.tagBusy, currentStatus === '空闲' ? { backgroundColor: theme.primarySoft, color: theme.primary } : { backgroundColor: theme.dangerBg, color: theme.dangerText }]}>
                       {currentStatus}
                     </Text>
                   </View>
-                  {device.remark ? <Text style={styles.deviceRemark}>{device.remark}</Text> : null}
-                  <Text style={styles.deviceLocation}>{device.addr || '暂无位置'}</Text>
-                  <Text style={styles.deviceLocation}>{device.ep || '暂无楼栋信息'}</Text>
+                  {device.remark ? <Text style={[styles.deviceRemark, { color: theme.primary }]}>{device.remark}</Text> : null}
+                  <Text style={[styles.deviceLocation, { color: theme.textMuted }]}>{device.addr || '暂无位置'}</Text>
+                  <Text style={[styles.deviceLocation, { color: theme.textMuted }]}>{device.ep || '暂无楼栋信息'}</Text>
                 </View>
-                {isSelected ? <Text style={styles.selectedMark}>已选</Text> : null}
+                {isSelected ? <Text style={[styles.selectedMark, { color: theme.primary }]}>已选</Text> : null}
               </Pressable>
             );
           })
         )}
 
         <Pressable
-          style={[styles.listActionButton, isDrinking ? styles.stopButton : styles.startButton]}
+          style={[
+            styles.listActionButton,
+            isDrinking ? styles.stopButton : styles.startButton,
+            { backgroundColor: isDrinking ? theme.dangerStrong : theme.actionBlueStrong },
+          ]}
           onPress={isDrinking ? stopDrinking : startDrinking}
           disabled={actionLoading || loading || !selectedId}
         >
-          <Text style={[styles.mainButtonText, isDrinking ? styles.stopButtonText : styles.startButtonText]}>
+          <Text style={[styles.mainButtonText, isDrinking ? styles.stopButtonText : styles.startButtonText, { color: '#ffffff' }]}>
             {actionLoading ? '处理中...' : isDrinking ? '停止接水' : '开始接水'}
           </Text>
         </Pressable>
 
         {message ? (
-          <Pressable style={styles.inlineMessage} onPress={clearMessage}>
-            <Text style={styles.inlineMessageText}>{message}</Text>
+          <Pressable style={[styles.inlineMessage, { backgroundColor: theme.surfaceSoft, borderColor: 'transparent' }]} onPress={clearMessage}>
+            <Text style={[styles.inlineMessageText, { color: theme.primary }]}>{message}</Text>
           </Pressable>
         ) : null}
       </ScrollView>
@@ -337,10 +357,18 @@ export function DevicesScreen() {
           </View>
 
           <View style={styles.scanCameraWrap}>
-            <View style={styles.scanEmpty}>
-              <Text style={styles.scanEmptyText}>当前安装环境暂时关闭扫码模块</Text>
-              <Text style={styles.scanEmptyHint}>先确认应用稳定启动，再恢复相机能力。</Text>
-            </View>
+            {permission?.granted ? (
+              <CameraView
+                style={styles.camera}
+                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                onBarcodeScanned={({ data }) => handleScan(data)}
+              />
+            ) : (
+              <View style={styles.scanEmpty}>
+                <Text style={styles.scanEmptyText}>未获取到相机权限</Text>
+                <Text style={styles.scanEmptyHint}>请在系统设置里允许访问相机。</Text>
+              </View>
+            )}
 
             <View style={styles.scanGuide} pointerEvents="none">
               <View style={styles.scanFrame}>
@@ -378,7 +406,7 @@ export function DevicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#ffffff' },
+  safeArea: { flex: 1, backgroundColor: '#f7f8ff' },
   content: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 40, gap: 14 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   profileWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
@@ -493,10 +521,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   startButton: { backgroundColor: '#5c74f6' },
-  stopButton: { backgroundColor: '#ffefe3' },
+  stopButton: { backgroundColor: '#e25363' },
   mainButtonText: { fontSize: 16, fontWeight: '800' },
   startButtonText: { color: '#ffffff' },
-  stopButtonText: { color: '#f08a24' },
+  stopButtonText: { color: '#ffffff' },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

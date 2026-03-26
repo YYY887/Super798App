@@ -1,77 +1,94 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppNavigationContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function SettingsScreen() {
   const { setRoute } = useAppNavigation();
+  const { isDark, setIsDark, theme } = useTheme();
 
   function handleComingSoon() {
     alert('敬请期待');
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Pressable style={styles.backButton} onPress={() => setRoute('profile')}>
-            <Text style={styles.backText}>返回</Text>
+            <Text style={[styles.backText, { color: theme.primary }]}>返回</Text>
           </Pressable>
-          <Text style={styles.title}>设置</Text>
+          <Text style={[styles.title, { color: theme.text }]}>设置</Text>
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={styles.group}>
+        <View style={[styles.group, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.item, styles.itemLast, { borderBottomColor: theme.border }]}>
+            <View style={styles.itemTextWrap}>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>暗色模式</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>夜间观感更柔和</Text>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={setIsDark}
+              trackColor={{ false: theme.switchTrackOff, true: theme.actionBlue }}
+              thumbColor={theme.switchThumb}
+            />
+          </View>
+        </View>
+
+        <View style={[styles.group, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Pressable style={styles.item} onPress={handleComingSoon}>
             <View style={styles.itemTextWrap}>
-              <Text style={styles.itemTitle}>桌面小组件</Text>
-              <Text style={styles.itemHint}>敬请期待</Text>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>桌面小组件</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>敬请期待</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
         </View>
 
-        <View style={styles.group}>
-          <Pressable style={styles.item} onPress={handleComingSoon}>
+        <View style={[styles.group, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={handleComingSoon}>
             <View style={styles.itemTextWrap}>
-              <Text style={styles.itemTitle}>通知设置</Text>
-              <Text style={styles.itemHint}>消息提醒和系统通知</Text>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>通知设置</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>消息提醒和系统通知</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
+          </Pressable>
+
+          <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={handleComingSoon}>
+            <View style={styles.itemTextWrap}>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>相机权限</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>扫码、拍照和访问权限</Text>
+            </View>
+            <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
 
           <Pressable style={styles.item} onPress={handleComingSoon}>
             <View style={styles.itemTextWrap}>
-              <Text style={styles.itemTitle}>相机权限</Text>
-              <Text style={styles.itemHint}>扫码、拍照和访问权限</Text>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>隐私与安全</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>账号安全和隐私说明</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
-          </Pressable>
-
-          <Pressable style={styles.item} onPress={handleComingSoon}>
-            <View style={styles.itemTextWrap}>
-              <Text style={styles.itemTitle}>隐私与安全</Text>
-              <Text style={styles.itemHint}>账号安全和隐私说明</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
+            <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
         </View>
 
-        <View style={styles.group}>
-          <Pressable style={styles.item} onPress={handleComingSoon}>
+        <View style={[styles.group, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={handleComingSoon}>
             <View style={styles.itemTextWrap}>
-              <Text style={styles.itemTitle}>清理缓存</Text>
-              <Text style={styles.itemHint}>清理页面和扫码缓存</Text>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>清理缓存</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>清理页面和扫码缓存</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
 
           <Pressable style={styles.item} onPress={handleComingSoon}>
             <View style={styles.itemTextWrap}>
-              <Text style={styles.itemTitle}>关于 Super798</Text>
-              <Text style={styles.itemHint}>版本信息与更新说明</Text>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>关于 Super798</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>版本信息与更新说明</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -127,8 +144,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ebf0ff',
+    borderBottomWidth: 0,
+  },
+  itemLast: {
+    borderBottomWidth: 0,
   },
   itemTextWrap: {
     flex: 1,

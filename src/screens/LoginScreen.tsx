@@ -16,8 +16,10 @@ import { login, sendLoginCode, getCaptchaUrl } from '../lib/api';
 import { randomStr } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useAppNavigation } from '../context/AppNavigationContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function LoginScreen() {
+  const { theme } = useTheme();
   const { signIn } = useAuth();
   const { setRoute } = useAppNavigation();
   const [step, setStep] = useState<1 | 2>(1);
@@ -102,25 +104,25 @@ export function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['left', 'right']}>
       <KeyboardAvoidingView
         style={styles.keyboardWrap}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Super 798</Text>
-          <Text style={styles.subtitle}>先登录，再去操作设备和记录。</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Super 798</Text>
+          <Text style={[styles.subtitle, { color: theme.textMuted }]}>先登录，再去操作设备和记录。</Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.primaryStrong }]}>
           {step === 1 ? (
             <>
-              <Text style={styles.cardTitle}>手机号登录</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>手机号登录</Text>
 
               <View style={styles.field}>
-                <Text style={styles.label}>手机号</Text>
+                <Text style={[styles.label, { color: theme.textMuted }]}>手机号</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }]}
                   keyboardType="number-pad"
                   maxLength={11}
                   placeholder="请输入手机号"
@@ -131,38 +133,38 @@ export function LoginScreen() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>图形验证码</Text>
+                <Text style={[styles.label, { color: theme.textMuted }]}>图形验证码</Text>
                 <View style={styles.captchaRow}>
                   <TextInput
-                    style={[styles.input, styles.captchaInput]}
+                    style={[styles.input, styles.captchaInput, { backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }]}
                     placeholder="请输入图形验证码"
                     placeholderTextColor="#8da0b3"
                     value={captchaInput}
                     onChangeText={setCaptchaInput}
                   />
-                  <Pressable style={styles.captchaWrap} onPress={refreshCaptcha}>
+                  <Pressable style={[styles.captchaWrap, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} onPress={refreshCaptcha}>
                     {captchaUri ? (
                       <Image source={{ uri: captchaUri }} style={styles.captchaImage} resizeMode="cover" />
                     ) : (
-                      <Text style={styles.captchaPlaceholder}>点击获取</Text>
+                      <Text style={[styles.captchaPlaceholder, { color: theme.textMuted }]}>点击获取</Text>
                     )}
                   </Pressable>
                 </View>
               </View>
 
-              <Pressable style={styles.primaryButton} onPress={handleSendSms} disabled={loading}>
+              <Pressable style={[styles.primaryButton, { backgroundColor: theme.actionBlueStrong }]} onPress={handleSendSms} disabled={loading}>
                 <Text style={styles.primaryButtonText}>{loading ? '发送中...' : '获取短信验证码'}</Text>
               </Pressable>
             </>
           ) : (
             <>
-              <Text style={styles.cardTitle}>输入验证码</Text>
-              <Text style={styles.hint}>验证码已发送至 {phone}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>输入验证码</Text>
+              <Text style={[styles.hint, { color: theme.textMuted }]}>验证码已发送至 {phone}</Text>
 
               <View style={styles.field}>
-                <Text style={styles.label}>短信验证码</Text>
+                <Text style={[styles.label, { color: theme.textMuted }]}>短信验证码</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }]}
                   keyboardType="number-pad"
                   maxLength={6}
                   placeholder="请输入 6 位验证码"
@@ -172,7 +174,7 @@ export function LoginScreen() {
                 />
               </View>
 
-              <Pressable style={styles.primaryButton} onPress={handleLogin} disabled={loading}>
+              <Pressable style={[styles.primaryButton, { backgroundColor: theme.actionBlueStrong }]} onPress={handleLogin} disabled={loading}>
                 <Text style={styles.primaryButtonText}>{loading ? '登录中...' : '登录'}</Text>
               </Pressable>
 
@@ -184,12 +186,12 @@ export function LoginScreen() {
                   refreshCaptcha();
                 }}
               >
-                <Text style={styles.secondaryButtonText}>重新获取验证码</Text>
+                <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>重新获取验证码</Text>
               </Pressable>
             </>
           )}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={[styles.error, { color: theme.dangerText }]}>{error}</Text> : null}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -203,8 +205,9 @@ const styles = StyleSheet.create({
   },
   keyboardWrap: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
+    paddingTop: 20,
   },
   header: {
     marginBottom: 22,

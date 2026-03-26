@@ -1,5 +1,6 @@
 const TOKEN_KEY = 'drink_token';
 const DEVICE_REMARK_PREFIX = 'device_remark_';
+const DARK_MODE_KEY = 'ui_dark_mode';
 
 const memoryStore = new Map<string, string>();
 
@@ -85,4 +86,16 @@ export async function setDeviceRemark(deviceId: string, value: string) {
   }
 
   return setItem(key, value);
+}
+
+export async function getStoredDarkMode() {
+  return (await getItem(DARK_MODE_KEY)) === '1';
+}
+
+export async function setStoredDarkMode(enabled: boolean) {
+  if (!enabled) {
+    return deleteItem(DARK_MODE_KEY);
+  }
+
+  return setItem(DARK_MODE_KEY, '1');
 }

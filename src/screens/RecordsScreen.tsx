@@ -9,9 +9,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAppData } from '../context/AppDataContext';
+import { useTheme } from '../context/ThemeContext';
 import { duration, formatLiters, formatName, formatTime } from '../lib/utils';
 
 export function RecordsScreen() {
+  const { theme } = useTheme();
   const { account, recordsLoading, records, recordsTotal, refreshRecords } = useAppData();
 
   useEffect(() => {
@@ -20,40 +22,40 @@ export function RecordsScreen() {
   }, [account?.id]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>接水记录</Text>
-          <Text style={styles.subtitle}>这里只保留记录内容，不再上面叠展示卡。</Text>
+          <Text style={[styles.title, { color: theme.text }]}>接水记录</Text>
+          <Text style={[styles.subtitle, { color: theme.textMuted }]}>这里只保留记录内容，不再上面叠展示卡。</Text>
         </View>
 
-        <Text style={styles.total}>共 {recordsTotal} 条</Text>
+        <Text style={[styles.total, { color: theme.textMuted }]}>共 {recordsTotal} 条</Text>
 
         {recordsLoading ? (
-          <View style={styles.emptyBlock}>
+          <View style={[styles.emptyBlock, { backgroundColor: theme.surfaceSoft, borderColor: theme.borderSoft }]}>
             <ActivityIndicator color="#000000" />
-            <Text style={styles.emptyText}>正在加载记录...</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>正在加载记录...</Text>
           </View>
         ) : records.length === 0 ? (
-          <View style={styles.emptyBlock}>
-            <Text style={styles.emptyText}>暂无记录</Text>
+          <View style={[styles.emptyBlock, { backgroundColor: theme.surfaceSoft, borderColor: theme.borderSoft }]}>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>暂无记录</Text>
           </View>
         ) : (
           records.map((record) => (
-            <View key={record.id} style={styles.recordItem}>
+            <View key={record.id} style={[styles.recordItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <View style={styles.recordMain}>
-                <Text style={styles.recordName}>{formatName(record.dname || record.did)}</Text>
-                {record.ep ? <Text style={styles.recordMeta}>{record.ep}</Text> : null}
-                <Text style={styles.recordMeta}>{formatTime(record.start_at)}</Text>
+                <Text style={[styles.recordName, { color: theme.text }]}>{formatName(record.dname || record.did)}</Text>
+                {record.ep ? <Text style={[styles.recordMeta, { color: theme.textMuted }]}>{record.ep}</Text> : null}
+                <Text style={[styles.recordMeta, { color: theme.textMuted }]}>{formatTime(record.start_at)}</Text>
                 {record.end_at ? (
-                  <Text style={styles.recordMeta}>时长 {duration(record.start_at, record.end_at)}</Text>
+                  <Text style={[styles.recordMeta, { color: theme.textMuted }]}>时长 {duration(record.start_at, record.end_at)}</Text>
                 ) : (
-                  <Text style={styles.recordRunning}>进行中</Text>
+                  <Text style={[styles.recordRunning, { color: theme.primary }]}>进行中</Text>
                 )}
               </View>
               <View style={styles.recordSide}>
-                <Text style={styles.recordAmount}>{formatLiters(record.out_ml)}</Text>
-                <Text style={styles.recordScore}>积分 {record.score || 0}</Text>
+                <Text style={[styles.recordAmount, { color: theme.primary }]}>{formatLiters(record.out_ml)}</Text>
+                <Text style={[styles.recordScore, { color: theme.textMuted }]}>积分 {record.score || 0}</Text>
               </View>
             </View>
           ))

@@ -5,8 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppNavigationContext';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function ProfileScreen() {
+  const { theme } = useTheme();
   const { signOut } = useAuth();
   const { setRoute } = useAppNavigation();
   const { account, devices, recordsTotal } = useAppData();
@@ -26,71 +28,69 @@ export function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['left', 'right']}>
       <View style={styles.content}>
-        <Text style={styles.title}>我的</Text>
-        <Text style={styles.subtitle}>头像、昵称和账户概览都集中到上面，页面读起来会顺很多。</Text>
-
+        <Text style={[styles.title, { color: theme.text }]}>我的</Text>
         <View style={styles.heroCard}>
           <View style={styles.heroTop}>
             {account?.img ? (
               <Image source={{ uri: account.img }} style={styles.avatarImage} />
             ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarFallbackText}>{account?.name?.slice(0, 1) || '用'}</Text>
+              <View style={[styles.avatarFallback, { backgroundColor: theme.surfaceSoft }]}>
+                <Text style={[styles.avatarFallbackText, { color: theme.primary }]}>{account?.name?.slice(0, 1) || '用'}</Text>
               </View>
             )}
 
             <View style={styles.heroInfo}>
-              <Text style={styles.heroName}>{account?.name || '-'}</Text>
-              <Text style={styles.heroPhone}>{account?.pn || '-'}</Text>
-              <Text style={styles.heroHint}>Super798 用户中心</Text>
+              <Text style={[styles.heroName, { color: theme.text }]}>{account?.name || '-'}</Text>
+              <Text style={[styles.heroPhone, { color: theme.textMuted }]}>{account?.pn || '-'}</Text>
+              <Text style={[styles.heroHint, { color: theme.textSoft }]}>Super798 用户中心</Text>
             </View>
           </View>
 
           <View style={styles.heroStats}>
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>设备</Text>
-              <Text style={styles.heroStatValue}>{devices.length}</Text>
+            <View style={[styles.heroStatItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.heroStatLabel, { color: theme.textMuted }]}>设备</Text>
+              <Text style={[styles.heroStatValue, { color: theme.primary }]}>{devices.length}</Text>
             </View>
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>记录</Text>
-              <Text style={styles.heroStatValue}>{recordsTotal}</Text>
+            <View style={[styles.heroStatItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.heroStatLabel, { color: theme.textMuted }]}>记录</Text>
+              <Text style={[styles.heroStatValue, { color: theme.primary }]}>{recordsTotal}</Text>
             </View>
-            <View style={styles.heroStatItem}>
-              <Text style={styles.heroStatLabel}>积分</Text>
-              <Text style={styles.heroStatValue}>{account?.useScore ?? 0}</Text>
+            <View style={[styles.heroStatItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.heroStatLabel, { color: theme.textMuted }]}>积分</Text>
+              <Text style={[styles.heroStatValue, { color: theme.primary }]}>{account?.useScore ?? 0}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.menuGroup}>
+        <View style={[styles.menuGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Pressable style={styles.menuItem} onPress={handleOpenSettings}>
             <View>
-              <Text style={styles.menuTitle}>设置</Text>
-              <Text style={styles.menuHint}>通知、权限和更多配置</Text>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>设置</Text>
+              <Text style={[styles.menuHint, { color: theme.textMuted }]}>通知、权限和更多配置</Text>
             </View>
-            <Text style={styles.menuArrow}>›</Text>
+            <Text style={[styles.menuArrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
 
           <Pressable style={styles.menuItem} onPress={handleComingSoon}>
             <View>
-              <Text style={styles.menuTitle}>消息中心</Text>
-              <Text style={styles.menuHint}>系统通知和账户提醒</Text>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>消息中心</Text>
+              <Text style={[styles.menuHint, { color: theme.textMuted }]}>系统通知和账户提醒</Text>
             </View>
-            <Text style={styles.menuArrow}>›</Text>
+            <Text style={[styles.menuArrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
 
           <Pressable style={styles.menuItem} onPress={handleComingSoon}>
             <View>
-              <Text style={styles.menuTitle}>关于 Super798</Text>
-              <Text style={styles.menuHint}>版本信息与功能说明</Text>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>关于 Super798</Text>
+              <Text style={[styles.menuHint, { color: theme.textMuted }]}>版本信息与功能说明</Text>
             </View>
-            <Text style={styles.menuArrow}>›</Text>
+            <Text style={[styles.menuArrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
         </View>
 
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
+        <Pressable style={[styles.logoutButton, { backgroundColor: theme.dangerStrong }]} onPress={handleLogout}>
           <Text style={styles.logoutText}>退出登录</Text>
         </Pressable>
       </View>
@@ -184,8 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ebf0ff',
+    borderBottomWidth: 0,
   },
   menuTitle: {
     fontSize: 16,
