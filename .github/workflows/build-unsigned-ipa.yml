@@ -1,0 +1,106 @@
+name: build-unsigned-ipa
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+      NODE_OPTIONS: --max_old_space_size=4096
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 生成 iOS 原生工程
+        run: npx expo prebuild --platform ios --non-interactive --clean
+
+      - name: 安装 CocoaPods
+        run: |
+          if [ -f ios/Podfile ]; then
+            pod install --project-directory=ios
+          fi
+
+      - name: 解析工程信息
+        run: |
+          WORKSPACE="$(find ios -maxdepth 1 -name '*.xcworkspace' | head -n 1)"
+          PROJECT="$(find ios -maxdepth 1 -name '*.xcodeproj' | head -n 1)"
+
+          if [ -n "$WORKSPACE" ]; then
+            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); puts(data.dig("workspace", "schemes") || []).first.to_s')"
+            echo "XCODE_CONTAINER=$WORKSPACE" >> "$GITHUB_ENV"
+            echo "XCODE_CONTAINER_KIND=workspace" >> "$GITHUB_ENV"
+          elif [ -n "$PROJECT" ]; then
+            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); puts(data.dig("project", "schemes") || []).first.to_s')"
+            echo "XCODE_CONTAINER=$PROJECT" >> "$GITHUB_ENV"
+            echo "XCODE_CONTAINER_KIND=project" >> "$GITHUB_ENV"
+          else
+            echo "未找到 iOS 工程文件"
+            exit 1
+          fi
+
+          if [ -z "$SCHEME" ]; then
+            echo "未找到可用 Scheme"
+            exit 1
+          fi
+
+          echo "XCODE_SCHEME=$SCHEME" >> "$GITHUB_ENV"
+
+      - name: 构建未签名 Archive
+        run: |
+          ARCHIVE_PATH="$RUNNER_TEMP/Super798-unsigned.xcarchive"
+
+          if [ "$XCODE_CONTAINER_KIND" = "workspace" ]; then
+            xcodebuild archive \
+              -workspace "$XCODE_CONTAINER" \
+              -scheme "$XCODE_SCHEME" \
+              -configuration Release \
+              -archivePath "$ARCHIVE_PATH" \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              SKIP_INSTALL=NO
+          else
+            xcodebuild archive \
+              -project "$XCODE_CONTAINER" \
+              -scheme "$XCODE_SCHEME" \
+              -configuration Release \
+              -archivePath "$ARCHIVE_PATH" \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              SKIP_INSTALL=NO
+          fi
+
+      - name: 导出未签名 IPA
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Super798-unsigned.xcarchive" \
+            -exportPath "$RUNNER_TEMP/ipa" \
+            -exportOptionsPlist "./exportOptions.unsigned.plist" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: 上传 IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ipa
+          path: ${{ runner.temp }}/ipa/*.ipa
