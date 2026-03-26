@@ -35,6 +35,21 @@ jobs:
             pod install --project-directory=ios
           fi
 
+      - name: 调整 Pod 编译参数
+        run: |
+          if [ -f ios/Pods/Target\ Support\ Files/ZXingObjC/ZXingObjC.debug.xcconfig ]; then
+            ruby -e '
+              Dir["ios/Pods/Target Support Files/**/*.xcconfig"].each do |path|
+                content = File.read(path)
+                content.gsub!(/-Werror=non-modular-include-in-framework-module/, "-Wno-non-modular-include-in-framework-module")
+                content.gsub!(/-Werror=return-type/, "-Wno-error=return-type")
+                content.gsub!(/-Werror=deprecated-objc-isa-usage/, "-Wno-error=deprecated-objc-isa-usage")
+                content.gsub!(/-Werror=objc-root-class/, "-Wno-error=objc-root-class")
+                File.write(path, content)
+              end
+            '
+          fi
+
       - name: 解析工程信息
         run: |
           WORKSPACE="$(find ios -maxdepth 1 -name '*.xcworkspace' | head -n 1)"
@@ -69,68 +84,60 @@ jobs:
           echo "使用的工程容器: ${WORKSPACE:-$PROJECT}"
           echo "使用的 Scheme: $SCHEME"
 
-      - name: 构建未签名 Archive
+      - name: 构建未签名应用
         run: |
-          ARCHIVE_PATH="$RUNNER_TEMP/Super798-unsigned.xcarchive"
-          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
+          echo "DERIVED_DATA=$DERIVED_DATA" >> "$GITHUB_ENV"
 
           if [ "$XCODE_CONTAINER_KIND" = "workspace" ]; then
-            xcodebuild archive \
+            xcodebuild build \
               -workspace "$XCODE_CONTAINER" \
               -scheme "$XCODE_SCHEME" \
               -configuration Release \
-              -archivePath "$ARCHIVE_PATH" \
+              -derivedDataPath "$DERIVED_DATA" \
               -destination 'generic/platform=iOS' \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              SKIP_INSTALL=NO
+              CODE_SIGNING_ALLOWED=NO
           else
-            xcodebuild archive \
+            xcodebuild build \
               -project "$XCODE_CONTAINER" \
               -scheme "$XCODE_SCHEME" \
               -configuration Release \
-              -archivePath "$ARCHIVE_PATH" \
+              -derivedDataPath "$DERIVED_DATA" \
               -destination 'generic/platform=iOS' \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              SKIP_INSTALL=NO
+              CODE_SIGNING_ALLOWED=NO
           fi
 
-      - name: 手工封装未签名 IPA
+      - name: 封装未签名 IPA
         run: |
-          echo "先从 iOS build 目录中查找 .app"
-          APP_PATH="$(find ios/build -name '*.app' -type d | head -n 1)"
+          # 在 DerivedData 中查找 .app
+          echo "在 DerivedData 中查找 .app ..."
+          APP_PATH="$(find "$DERIVED_DATA/Build/Products/Release-iphoneos" -name '*.app' -type d -maxdepth 1 | head -n 1)"
 
           if [ -z "$APP_PATH" ]; then
-            echo "build 目录未找到，改为从 archive 中查找 .app"
-            APP_PATH="$(find "$ARCHIVE_PATH" -name '*.app' -type d | head -n 1)"
+            echo "Release-iphoneos 目录未找到 .app，尝试全局搜索 DerivedData ..."
+            APP_PATH="$(find "$DERIVED_DATA" -name '*.app' -type d | head -n 1)"
           fi
 
           if [ -z "$APP_PATH" ]; then
-            echo "未在 archive 中找到 .app"
-            echo "当前 build 目录中的 .app 候选："
-            find ios -name "*.app" -type d || true
-            echo "当前 archive 中的 .app 候选："
-            find "$ARCHIVE_PATH" -name "*.app" -type d || true
+            echo "❌ 未找到 .app，以下是 DerivedData 中的内容："
+            find "$DERIVED_DATA/Build/Products" -type d -maxdepth 3 || true
             exit 1
           fi
 
-          echo "找到应用目录：$APP_PATH"
-          echo "开始组装 Payload"
+          echo "✅ 找到应用：$APP_PATH"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
 
-          echo "开始压缩生成未签名 IPA"
           cd "$RUNNER_TEMP/ipa"
           zip -qry "$RUNNER_TEMP/ipa/Super798.ipa" Payload
-          echo "未签名 IPA 已生成：$RUNNER_TEMP/ipa/Super798.ipa"
+          echo "✅ 未签名 IPA 已生成：$RUNNER_TEMP/ipa/Super798.ipa"
 
       - name: 上传 IPA
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-ipa
-          path: |
-            ${{ runner.temp }}/ipa/Super798.ipa
-            ${{ runner.temp }}/Super798-unsigned.xcarchive
+          path: ${{ runner.temp }}/ipa/Super798.ipa
