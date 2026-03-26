@@ -101,7 +101,7 @@ jobs:
 
       - name: 手工封装未签名 IPA
         run: |
-          APP_PATH="$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name '*.app' | head -n 1)"
+          APP_PATH="$(find "$ARCHIVE_PATH" -name '*.app' | head -n 1)"
 
           if [ -z "$APP_PATH" ]; then
             echo "未在 archive 中找到 .app"
@@ -110,16 +110,17 @@ jobs:
             exit 1
           fi
 
+          echo "找到应用：$APP_PATH"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
 
           cd "$RUNNER_TEMP/ipa"
-          zip -qry "$RUNNER_TEMP/Super798-unsigned.ipa" Payload
+          zip -qry "$RUNNER_TEMP/ipa/Super798.ipa" Payload
 
       - name: 上传 IPA
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-ipa
           path: |
-            ${{ runner.temp }}/Super798-unsigned.ipa
+            ${{ runner.temp }}/ipa/Super798.ipa
             ${{ runner.temp }}/Super798-unsigned.xcarchive
