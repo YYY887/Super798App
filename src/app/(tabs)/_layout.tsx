@@ -1,5 +1,4 @@
-import { Redirect } from 'expo-router';
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Redirect, Tabs } from 'expo-router';
 
 import { useAuth } from '../../context/AuthContext';
 
@@ -10,33 +9,42 @@ export default function TabsLayout() {
   if (!token) return <Redirect href="/login" />;
 
   return (
-    <NativeTabs
-      labelStyle={{ color: '#8a8a8f' }}
-      iconColor={{ default: '#9a9aa0', selected: '#5f5f64' }}
-      tintColor="#5f5f64"
-      backgroundColor="rgba(255,255,255,0.9)"
-      shadowColor="transparent"
-      blurEffect="systemUltraThinMaterialLight"
-      disableTransparentOnScrollEdge
-      minimizeBehavior="onScrollDown"
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#4f86c6',
+        tabBarInactiveTintColor: '#93a4bd',
+        tabBarStyle: {
+          backgroundColor: 'rgba(255,255,255,0.96)',
+          borderTopColor: '#d8e7f6',
+          height: 58,
+          paddingTop: 6,
+          paddingBottom: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      }}
     >
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: 'drop', selected: 'drop.fill' }} />
-        <Label>设备</Label>
-        <NativeTabs.Trigger.TabBar backgroundColor="rgba(255,255,255,0.01)" shadowColor="transparent" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="records">
-        <Icon sf={{ default: 'clock', selected: 'clock.fill' }} />
-        <Label>记录</Label>
-        <NativeTabs.Trigger.TabBar backgroundColor="rgba(255,255,255,0.01)" shadowColor="transparent" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: 'person', selected: 'person.fill' }} />
-        <Label>我的</Label>
-        <NativeTabs.Trigger.TabBar backgroundColor="rgba(255,255,255,0.01)" shadowColor="transparent" />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: '设备',
+        }}
+      />
+      <Tabs.Screen
+        name="records"
+        options={{
+          title: '记录',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: '我的',
+        }}
+      />
+    </Tabs>
   );
 }
