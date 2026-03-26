@@ -1,23 +1,23 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAppNavigation } from '../context/AppNavigationContext';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
 
 export function ProfileScreen() {
-  const router = useRouter();
   const { signOut } = useAuth();
+  const { setRoute } = useAppNavigation();
   const { account, devices, recordsTotal } = useAppData();
 
   async function handleLogout() {
     await signOut();
-    router.replace('/login');
+    setRoute('login');
   }
 
   function handleOpenSettings() {
-    router.push('/settings');
+    setRoute('settings');
   }
 
   function handleComingSoon() {

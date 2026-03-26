@@ -1,10 +1,10 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppNavigation } from '../context/AppNavigationContext';
 
 export function SettingsScreen() {
-  const router = useRouter();
+  const { setRoute } = useAppNavigation();
 
   function handleComingSoon() {
     alert('敬请期待');
@@ -14,7 +14,7 @@ export function SettingsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable style={styles.backButton} onPress={() => setRoute('profile')}>
             <Text style={styles.backText}>返回</Text>
           </Pressable>
           <Text style={styles.title}>设置</Text>

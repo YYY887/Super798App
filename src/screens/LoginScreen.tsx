@@ -10,16 +10,16 @@ import {
   View,
 } from 'react-native';
 
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { login, sendLoginCode, getCaptchaUrl } from '../lib/api';
 import { randomStr } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { useAppNavigation } from '../context/AppNavigationContext';
 
 export function LoginScreen() {
-  const router = useRouter();
   const { signIn } = useAuth();
+  const { setRoute } = useAppNavigation();
   const [step, setStep] = useState<1 | 2>(1);
   const [phone, setPhone] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
@@ -93,7 +93,7 @@ export function LoginScreen() {
       }
 
       await signIn(nextToken);
-      router.replace('/(tabs)');
+      setRoute('devices');
     } catch {
       setError('网络错误，请稍后重试');
     } finally {
