@@ -41,11 +41,11 @@ jobs:
           PROJECT="$(find ios -maxdepth 1 -name '*.xcodeproj' | head -n 1)"
 
           if [ -n "$WORKSPACE" ]; then
-            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); puts(data.dig("workspace", "schemes") || []).first.to_s')"
+            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); schemes = data.dig("workspace", "schemes") || data.dig("project", "schemes") || []; puts((schemes.first || "").to_s)')"
             echo "XCODE_CONTAINER=$WORKSPACE" >> "$GITHUB_ENV"
             echo "XCODE_CONTAINER_KIND=workspace" >> "$GITHUB_ENV"
           elif [ -n "$PROJECT" ]; then
-            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); puts(data.dig("project", "schemes") || []).first.to_s')"
+            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); schemes = data.dig("project", "schemes") || data.dig("workspace", "schemes") || []; puts((schemes.first || "").to_s)')"
             echo "XCODE_CONTAINER=$PROJECT" >> "$GITHUB_ENV"
             echo "XCODE_CONTAINER_KIND=project" >> "$GITHUB_ENV"
           else
@@ -54,11 +54,20 @@ jobs:
           fi
 
           if [ -z "$SCHEME" ]; then
+            SCHEME="$(find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -exec basename {} .xcscheme \; | head -n 1)"
+          fi
+
+          if [ -z "$SCHEME" ]; then
             echo "未找到可用 Scheme"
+            echo "workspace=$WORKSPACE"
+            echo "project=$PROJECT"
+            find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -print || true
             exit 1
           fi
 
           echo "XCODE_SCHEME=$SCHEME" >> "$GITHUB_ENV"
+          echo "使用容器: ${WORKSPACE:-$PROJECT}"
+          echo "使用 Scheme: $SCHEME"
 
       - name: 构建未签名 Archive
         run: |
