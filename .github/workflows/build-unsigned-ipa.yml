@@ -13,6 +13,7 @@ jobs:
       CI: "1"
       EXPO_NO_TELEMETRY: "1"
       NODE_OPTIONS: --max_old_space_size=4096
+      DISABLE_EXPO_WIDGETS: "1"
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
