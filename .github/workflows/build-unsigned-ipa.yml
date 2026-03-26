@@ -23,6 +23,21 @@ jobs:
         with:
           node-version: 20
 
+      - name: 无签名构建准备
+        run: |
+          if [ "$DISABLE_EXPO_WIDGETS" = "1" ]; then
+            node -e '
+              const fs = require("fs");
+              const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+              if (pkg.dependencies) {
+                delete pkg.dependencies["@expo/ui"];
+                delete pkg.dependencies["expo-widgets"];
+              }
+              fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
+            '
+            rm -f package-lock.json
+          fi
+
       - name: 安装依赖
         run: npm install --legacy-peer-deps
 
