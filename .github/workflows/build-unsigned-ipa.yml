@@ -72,6 +72,7 @@ jobs:
       - name: 构建未签名 Archive
         run: |
           ARCHIVE_PATH="$RUNNER_TEMP/Super798-unsigned.xcarchive"
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
 
           if [ "$XCODE_CONTAINER_KIND" = "workspace" ]; then
             xcodebuild archive \
@@ -97,19 +98,26 @@ jobs:
               SKIP_INSTALL=NO
           fi
 
-      - name: 导出未签名 IPA
+      - name: 手工封装未签名 IPA
         run: |
-          mkdir -p "$RUNNER_TEMP/ipa"
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/Super798-unsigned.xcarchive" \
-            -exportPath "$RUNNER_TEMP/ipa" \
-            -exportOptionsPlist "./exportOptions.unsigned.plist" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          APP_PATH="$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name '*.app' | head -n 1)"
+
+          if [ -z "$APP_PATH" ]; then
+            echo "未在 archive 中找到 .app"
+            find "$ARCHIVE_PATH" -maxdepth 4 -print || true
+            exit 1
+          fi
+
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
+
+          cd "$RUNNER_TEMP/ipa"
+          zip -qry "$RUNNER_TEMP/Super798-unsigned.ipa" Payload
 
       - name: 上传 IPA
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-ipa
-          path: ${{ runner.temp }}/ipa/*.ipa
+          path: |
+            ${{ runner.temp }}/Super798-unsigned.ipa
+            ${{ runner.temp }}/Super798-unsigned.xcarchive
