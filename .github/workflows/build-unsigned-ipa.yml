@@ -21,10 +21,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: 安装依赖
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: 生成 iOS 原生工程
         run: npx expo prebuild --platform ios --non-interactive --clean
