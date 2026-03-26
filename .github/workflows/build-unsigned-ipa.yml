@@ -13,7 +13,6 @@ jobs:
       CI: "1"
       EXPO_NO_TELEMETRY: "1"
       NODE_OPTIONS: --max_old_space_size=4096
-      DISABLE_EXPO_WIDGETS: "1"
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -22,21 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: 无签名构建准备
-        run: |
-          if [ "$DISABLE_EXPO_WIDGETS" = "1" ]; then
-            node -e '
-              const fs = require("fs");
-              const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-              if (pkg.dependencies) {
-                delete pkg.dependencies["@expo/ui"];
-                delete pkg.dependencies["expo-widgets"];
-              }
-              fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
-            '
-            rm -f package-lock.json
-          fi
 
       - name: 安装依赖
         run: npm install --legacy-peer-deps
@@ -126,7 +110,7 @@ jobs:
               CODE_SIGNING_ALLOWED=NO
           fi
 
-      - name: 封装未签名 IPA
+      - name: 假签名并封装 IPA
         run: |
           # 在 DerivedData 中查找 .app
           echo "在 DerivedData 中查找 .app ..."
@@ -144,6 +128,9 @@ jobs:
           fi
 
           echo "✅ 找到应用：$APP_PATH"
+          echo "开始进行假签名（ad-hoc）..."
+          codesign -s - --force --deep --timestamp=none "$APP_PATH"
+          echo "✅ 假签名完成"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
 

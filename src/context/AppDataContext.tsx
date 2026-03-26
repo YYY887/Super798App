@@ -8,16 +8,7 @@ import {
   startDevice,
   toggleFavo,
 } from '../lib/api';
-import {
-  getDeviceRemark,
-  getWidgetDeviceId,
-  getWidgetEnabled,
-  setDeviceRemark,
-  setWidgetDeviceId,
-  setWidgetEnabled,
-} from '../lib/storage';
-import { addWidgetInteractionListener } from '../widgets/runtime';
-import { syncQuickDeviceWidget } from '../widgets/syncQuickDeviceWidget';
+import { getDeviceRemark, setDeviceRemark } from '../lib/storage';
 
 type Account = {
   id: string;
@@ -67,10 +58,7 @@ type AppDataContextValue = {
   accScore: string;
   records: RecordItem[];
   recordsTotal: number;
-  widgetEnabled: boolean;
-  widgetDeviceId: string;
   setSelectedId: (deviceId: string) => void;
-  setWidgetOptions: (enabled: boolean, deviceId: string) => Promise<void>;
   refreshDevices: () => Promise<void>;
   refreshRecords: () => Promise<void>;
   startDrinking: () => Promise<void>;
@@ -102,25 +90,13 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
   const [accScore, setAccScore] = useState('');
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [recordsTotal, setRecordsTotal] = useState(0);
-  const [widgetEnabled, setWidgetEnabledState] = useState(false);
-  const [widgetDeviceId, setWidgetDeviceIdState] = useState('');
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const widgetEnabledRef = useRef(false);
-  const widgetDeviceIdRef = useRef('');
   const selectedIdRef = useRef('');
   const isDrinkingRef = useRef(false);
   const deviceStatusRef = useRef<DeviceStatus | null>(null);
   const accScoreRef = useRef('');
   const accountRef = useRef<Account | null>(null);
   const devicesRef = useRef<Device[]>([]);
-
-  useEffect(() => {
-    widgetEnabledRef.current = widgetEnabled;
-  }, [widgetEnabled]);
-
-  useEffect(() => {
-    widgetDeviceIdRef.current = widgetDeviceId;
-  }, [widgetDeviceId]);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
@@ -175,29 +151,15 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
       setAccScore('');
       setRecords([]);
       setRecordsTotal(0);
-      setWidgetEnabledState(false);
-      setWidgetDeviceIdState('');
       return;
     }
 
     refreshDevices();
-    loadWidgetOptions();
 
     return () => {
       cleanupTimer();
     };
   }, [token]);
-
-  async function loadWidgetOptions() {
-    try {
-      const [enabled, deviceId] = await Promise.all([getWidgetEnabled(), getWidgetDeviceId()]);
-      setWidgetEnabledState(enabled);
-      setWidgetDeviceIdState(deviceId || '');
-    } catch {
-      setWidgetEnabledState(false);
-      setWidgetDeviceIdState('');
-    }
-  }
 
   async function refreshDevices() {
     if (!token) return;
@@ -526,64 +488,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
     showMessage(nextRemark ? '备注已保存' : '备注已清空');
   }
 
-  async function setWidgetOptionsAction(enabled: boolean, deviceId: string) {
-    const nextDeviceId = enabled ? deviceId : '';
-
-    await Promise.all([setWidgetEnabled(enabled), setWidgetDeviceId(nextDeviceId)]);
-
-    setWidgetEnabledState(enabled);
-    setWidgetDeviceIdState(nextDeviceId);
-    showMessage(enabled ? '小组件已更新' : '小组件已关闭');
-  }
-
-  /*
-   * 2026-03-26:
-   * 小组件事件只能在主应用运行时接住，所以这里统一做兜底：
-   * 1. Expo Go / 非 iOS 直接跳过，不能影响现有调试流程。
-   * 2. 真机开发构建里，如果用户点了开始/结束，就按设置里的默认设备执行。
-   * 后续如果改成更复杂的小组件交互，先保证这里不要把现有接水主流程改坏。
-   */
-  useEffect(() => {
-    const subscription = addWidgetInteractionListener(async (event) => {
-      if (event.source !== 'QuickDeviceWidget') return;
-
-      const currentWidgetDeviceId = widgetDeviceIdRef.current;
-      if (!widgetEnabledRef.current || !currentWidgetDeviceId) return;
-
-      if (event.target === 'start-water') {
-        await startDrinkingById(currentWidgetDeviceId);
-      }
-
-      if (event.target === 'stop-water') {
-        await stopDrinkingById(currentWidgetDeviceId);
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [token]);
-
-  useEffect(() => {
-    const currentWidgetDevice = devices.find((item) => item.id === widgetDeviceId);
-    const widgetDeviceName = currentWidgetDevice?.remark || currentWidgetDevice?.name || '';
-    const widgetStatusText =
-      widgetEnabled && widgetDeviceId
-        ? isDrinking && selectedId === widgetDeviceId
-          ? `接水中 ${deviceStatus?.out ?? 0}ml`
-          : currentWidgetDevice?.status === 99
-            ? '待开始'
-            : '设备忙碌'
-        : '请在设置里启用小组件';
-
-    syncQuickDeviceWidget({
-      enabled: widgetEnabled && !!widgetDeviceId,
-      accountName: account?.name || 'Super798',
-      deviceName: widgetDeviceName || '未选择设备',
-      statusText: widgetStatusText,
-    });
-  }, [account?.name, deviceStatus?.out, devices, isDrinking, selectedId, widgetDeviceId, widgetEnabled]);
-
   return (
     <AppDataContext.Provider
       value={{
@@ -599,10 +503,7 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
         accScore,
         records,
         recordsTotal,
-        widgetEnabled,
-        widgetDeviceId,
         setSelectedId,
-        setWidgetOptions: setWidgetOptionsAction,
         refreshDevices,
         refreshRecords,
         startDrinking: startDrinkingAction,
