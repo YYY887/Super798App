@@ -1,0 +1,228 @@
+name: build-unsigned-ipa
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+      NODE_OPTIONS: --max_old_space_size=4096
+      CERT_DIR: "证书_00008120-000908503A31A01E"
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装依赖
+        run: npm install --legacy-peer-deps
+
+      - name: 生成 iOS 原生工程
+        run: npx expo prebuild --platform ios --non-interactive --clean
+
+      - name: 安装 CocoaPods
+        run: |
+          if [ -f ios/Podfile ]; then
+            pod install --project-directory=ios
+          fi
+
+      - name: 调整 Pod 编译参数
+        run: |
+          if [ -f ios/Pods/Target\ Support\ Files/ZXingObjC/ZXingObjC.debug.xcconfig ]; then
+            ruby -e '
+              Dir["ios/Pods/Target Support Files/**/*.xcconfig"].each do |path|
+                content = File.read(path)
+                content.gsub!(/-Werror=non-modular-include-in-framework-module/, "-Wno-non-modular-include-in-framework-module")
+                content.gsub!(/-Werror=return-type/, "-Wno-error=return-type")
+                content.gsub!(/-Werror=deprecated-objc-isa-usage/, "-Wno-error=deprecated-objc-isa-usage")
+                content.gsub!(/-Werror=objc-root-class/, "-Wno-error=objc-root-class")
+                File.write(path, content)
+              end
+            '
+          fi
+
+      - name: 读取证书与描述文件
+        run: |
+          P12_PATH="$(ls "$CERT_DIR"/*.p12 2>/dev/null | head -n 1)"
+          PROFILE_PATH="$(ls "$CERT_DIR"/*.mobileprovision 2>/dev/null | head -n 1)"
+          PASSWORD_FILE="$(ls "$CERT_DIR"/密码*.txt "$CERT_DIR"/*password*.txt 2>/dev/null | head -n 1)"
+
+          if [ ! -f "$P12_PATH" ] || [ ! -f "$PROFILE_PATH" ] || [ ! -f "$PASSWORD_FILE" ]; then
+            echo "证书文件不完整，请确认目录 $CERT_DIR 下包含 p12、mobileprovision 和 密码.txt"
+            exit 1
+          fi
+
+          P12_PASSWORD="$(sed -n 's/.*密码[:：]//p' "$PASSWORD_FILE" | tr -d '\r\n ')"
+          if [ -z "$P12_PASSWORD" ]; then
+            echo "未读取到证书密码"
+            exit 1
+          fi
+
+          BUNDLE_ID="$(node -e "const app=require('./app.json'); console.log(app.expo?.ios?.bundleIdentifier || '')")"
+          if [ -z "$BUNDLE_ID" ]; then
+            echo "未读取到 bundleIdentifier"
+            exit 1
+          fi
+
+          echo "P12_PATH=$P12_PATH" >> "$GITHUB_ENV"
+          echo "PROFILE_PATH=$PROFILE_PATH" >> "$GITHUB_ENV"
+          echo "P12_PASSWORD=$P12_PASSWORD" >> "$GITHUB_ENV"
+          echo "BUNDLE_ID=$BUNDLE_ID" >> "$GITHUB_ENV"
+
+      - name: 导入证书并安装描述文件
+        run: |
+          KEYCHAIN_PASSWORD="signing-${RANDOM}${RANDOM}"
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> "$GITHUB_ENV"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security list-keychains -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+
+          security import "$P12_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          PROFILE_INFO="$(security cms -D -i "$PROFILE_PATH")"
+          PROFILE_UUID="$(echo "$PROFILE_INFO" | /usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin)"
+          PROFILE_NAME="$(echo "$PROFILE_INFO" | /usr/libexec/PlistBuddy -c 'Print Name' /dev/stdin)"
+          TEAM_ID="$(echo "$PROFILE_INFO" | /usr/libexec/PlistBuddy -c 'Print TeamIdentifier:0' /dev/stdin)"
+          GET_TASK_ALLOW="$(echo "$PROFILE_INFO" | /usr/libexec/PlistBuddy -c 'Print Entitlements:get-task-allow' /dev/stdin)"
+          PROVISIONS_ALL="$(echo "$PROFILE_INFO" | /usr/libexec/PlistBuddy -c 'Print ProvisionsAllDevices' /dev/stdin 2>/dev/null || echo 'false')"
+          HAS_DEVICES="$(echo "$PROFILE_INFO" | /usr/libexec/PlistBuddy -c 'Print ProvisionedDevices' /dev/stdin 2>/dev/null | head -n 1 || true)"
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+          if [ "$GET_TASK_ALLOW" = "true" ]; then
+            EXPORT_METHOD="development"
+          elif [ "$PROVISIONS_ALL" = "true" ]; then
+            EXPORT_METHOD="enterprise"
+          elif [ -n "$HAS_DEVICES" ]; then
+            EXPORT_METHOD="ad-hoc"
+          else
+            EXPORT_METHOD="app-store"
+          fi
+
+          SIGN_IDENTITY="$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/\"/ {print $2; exit}')"
+          if [ -z "$SIGN_IDENTITY" ]; then
+            echo "未找到可用的签名证书"
+            security find-identity -v -p codesigning build.keychain || true
+            exit 1
+          fi
+
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "TEAM_ID=$TEAM_ID" >> "$GITHUB_ENV"
+          echo "EXPORT_METHOD=$EXPORT_METHOD" >> "$GITHUB_ENV"
+          echo "SIGN_IDENTITY=$SIGN_IDENTITY" >> "$GITHUB_ENV"
+
+      - name: 生成导出配置
+        run: |
+          cat > "$RUNNER_TEMP/exportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>$EXPORT_METHOD</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>$BUNDLE_ID</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: 解析工程信息
+        run: |
+          WORKSPACE="$(find ios -maxdepth 1 -name '*.xcworkspace' | head -n 1)"
+          PROJECT="$(find ios -maxdepth 1 -name '*.xcodeproj' | head -n 1)"
+
+          if [ -n "$WORKSPACE" ]; then
+            SCHEME="$(xcodebuild -list -json -workspace "$WORKSPACE" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = "Super798"; schemes = data.dig("workspace", "schemes") || data.dig("project", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
+            echo "XCODE_CONTAINER=$WORKSPACE" >> "$GITHUB_ENV"
+            echo "XCODE_CONTAINER_KIND=workspace" >> "$GITHUB_ENV"
+          elif [ -n "$PROJECT" ]; then
+            SCHEME="$(xcodebuild -list -json -project "$PROJECT" | ruby -rjson -e 'data = JSON.parse(STDIN.read); app_scheme = "Super798"; schemes = data.dig("project", "schemes") || data.dig("workspace", "schemes") || []; preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
+            echo "XCODE_CONTAINER=$PROJECT" >> "$GITHUB_ENV"
+            echo "XCODE_CONTAINER_KIND=project" >> "$GITHUB_ENV"
+          else
+            echo "未找到 iOS 原生工程文件"
+            exit 1
+          fi
+
+          if [ -z "$SCHEME" ]; then
+            SCHEME="$(find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -exec basename {} .xcscheme \; | ruby -e 'app_scheme = "Super798"; schemes = STDIN.read.split("\n"); preferred = schemes.find { |name| name == app_scheme } || schemes.find { |name| !name.start_with?("Pods-", "Expo", "React", "EX", "hermes") } || schemes.first; puts((preferred || "").to_s)')"
+          fi
+
+          if [ -z "$SCHEME" ]; then
+            echo "未找到可用的主应用 Scheme"
+            echo "workspace=$WORKSPACE"
+            echo "project=$PROJECT"
+            find ios -path '*/xcshareddata/xcschemes/*.xcscheme' -print || true
+            exit 1
+          fi
+
+          echo "XCODE_SCHEME=$SCHEME" >> "$GITHUB_ENV"
+          echo "使用的工程容器: ${WORKSPACE:-$PROJECT}"
+          echo "使用的 Scheme: $SCHEME"
+
+      - name: 构建已签名 Archive
+        run: |
+          ARCHIVE_PATH="$RUNNER_TEMP/Super798.xcarchive"
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> "$GITHUB_ENV"
+
+          if [ "$XCODE_CONTAINER_KIND" = "workspace" ]; then
+            xcodebuild archive \
+              -workspace "$XCODE_CONTAINER" \
+              -scheme "$XCODE_SCHEME" \
+              -configuration Release \
+              -archivePath "$ARCHIVE_PATH" \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME"
+          else
+            xcodebuild archive \
+              -project "$XCODE_CONTAINER" \
+              -scheme "$XCODE_SCHEME" \
+              -configuration Release \
+              -archivePath "$ARCHIVE_PATH" \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGN_STYLE=Manual \
+              CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME"
+          fi
+
+      - name: 导出已签名 IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$RUNNER_TEMP/ipa" \
+            -exportOptionsPlist "$RUNNER_TEMP/exportOptions.plist"
+          echo "✅ 已签名 IPA 已生成：$RUNNER_TEMP/ipa"
+
+      - name: 上传 IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-ipa
+          path: ${{ runner.temp }}/ipa/Super798.ipa
