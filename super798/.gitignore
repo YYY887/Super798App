@@ -36,11 +36,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+app-example
+
 # generated native folders
 /ios
 /android
-
-# project workspace
-super798/node_modules/
-super798/.expo/
-super798/web-build/
