@@ -30,10 +30,6 @@ jobs:
         run: |
           npx expo prebuild --platform ios --non-interactive --clean
 
-      - name: 注入 iOS 小组件
-        run: |
-          ruby scripts/ios-widget/setup.rb
-
       - name: 安装 CocoaPods
         run: |
           if [ -f ios/Podfile ]; then
@@ -78,13 +74,10 @@ jobs:
             exit 1
           fi
 
-          WIDGET_BUNDLE_ID="${BUNDLE_ID}.widget"
-
           echo "P12_PATH=$P12_PATH" >> "$GITHUB_ENV"
           echo "PROFILE_PATH=$PROFILE_PATH" >> "$GITHUB_ENV"
           echo "P12_PASSWORD=$P12_PASSWORD" >> "$GITHUB_ENV"
           echo "BUNDLE_ID=$BUNDLE_ID" >> "$GITHUB_ENV"
-          echo "WIDGET_BUNDLE_ID=$WIDGET_BUNDLE_ID" >> "$GITHUB_ENV"
 
       - name: 导入证书并安装描述文件
         run: |
@@ -150,8 +143,6 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>$BUNDLE_ID</key>
-              <string>$PROFILE_NAME</string>
-              <key>$WIDGET_BUNDLE_ID</key>
               <string>$PROFILE_NAME</string>
             </dict>
             <key>compileBitcode</key>
