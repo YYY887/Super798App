@@ -201,7 +201,13 @@ end
 
 embed_phase = app_target.copy_files_build_phases.find { |phase| phase.name == 'Embed App Extensions' }
 embed_phase ||= app_target.new_copy_files_build_phase('Embed App Extensions')
-embed_phase.symbol_dst_subfolder_spec = :plugins
+#
+# 2026-03-27:
+# xcodeproj 的 COPY_FILES_BUILD_PHASE_DESTINATIONS 使用的是 :plug_ins，
+# 不是 :plugins。这里一旦写错，CI 上较新的 xcodeproj 会直接抛异常，
+# 导致小组件注入流程在保存工程前中断。
+#
+embed_phase.symbol_dst_subfolder_spec = :plug_ins
 
 unless embed_phase.files_references.include?(widget_target.product_reference)
   build_file = embed_phase.add_file_reference(widget_target.product_reference, true)
