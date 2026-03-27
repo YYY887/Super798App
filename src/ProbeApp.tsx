@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { RecordsScreen } from './screens/RecordsScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { applyPreparedUpdate, prepareUpdateIfAvailable } from './lib/updates';
 
 function AppShell() {
   const { bootstrapped, token, signOut } = useAuth();
@@ -43,6 +44,8 @@ function Navigator() {
   const { route, setRoute } = useAppNavigation();
   const { theme } = useTheme();
   const transition = useRef(new Animated.Value(0)).current;
+  const [checkingMandatoryUpdate, setCheckingMandatoryUpdate] = useState(true);
+  const [applyingMandatoryUpdate, setApplyingMandatoryUpdate] = useState(false);
 
   useEffect(() => {
     transition.setValue(0);
@@ -53,6 +56,32 @@ function Navigator() {
       useNativeDriver: true,
     }).start();
   }, [route, transition]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function bootstrapUpdateCheck() {
+      const result = await prepareUpdateIfAvailable();
+
+      if (!alive) {
+        return;
+      }
+
+      if (result.status === 'available') {
+        setApplyingMandatoryUpdate(true);
+        await applyPreparedUpdate();
+        return;
+      }
+
+      setCheckingMandatoryUpdate(false);
+    }
+
+    void bootstrapUpdateCheck();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const pageAnimatedStyle = {
     opacity: transition.interpolate({
@@ -74,6 +103,20 @@ function Navigator() {
       },
     ],
   };
+
+  if (checkingMandatoryUpdate) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top']}>
+        <StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} />
+        <View style={[styles.topSafeMask, { backgroundColor: theme.background }]} />
+        <View style={styles.center}>
+          <Text style={[styles.loadingText, { color: theme.textMuted }]}>
+            {applyingMandatoryUpdate ? '正在安装更新...' : '正在检查更新...'}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!token) {
     return (

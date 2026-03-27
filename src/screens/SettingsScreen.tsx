@@ -1,15 +1,36 @@
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import Constants from 'expo-constants';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppNavigationContext';
 import { useTheme } from '../context/ThemeContext';
+import { applyPreparedUpdate, prepareUpdateIfAvailable } from '../lib/updates';
 
 export function SettingsScreen() {
   const { setRoute } = useAppNavigation();
   const { isDark, setIsDark, theme } = useTheme();
+  const version = Constants.expoConfig?.version ?? '1.0.0';
 
   function handleComingSoon() {
     alert('敬请期待');
+  }
+
+  async function handleCheckUpdate() {
+    const result = await prepareUpdateIfAvailable();
+
+    if (result.status === 'available') {
+      Alert.alert('发现新版本', '新版本已经准备好，立即重启更新。', [
+        {
+          text: '立即更新',
+          onPress: () => {
+            void applyPreparedUpdate();
+          },
+        },
+      ]);
+      return;
+    }
+
+    Alert.alert('检查更新', result.message);
   }
 
   return (
@@ -75,6 +96,14 @@ export function SettingsScreen() {
         </View>
 
         <View style={[styles.group, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={handleCheckUpdate}>
+            <View style={styles.itemTextWrap}>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>检查更新</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>当前版本 {version}</Text>
+            </View>
+            <Text style={[styles.arrow, { color: theme.primary }]}>›</Text>
+          </Pressable>
+
           <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={handleComingSoon}>
             <View style={styles.itemTextWrap}>
               <Text style={[styles.itemTitle, { color: theme.text }]}>清理缓存</Text>

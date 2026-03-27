@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Super798",
-    "slug": "mobile",
+    "slug": "super798",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,6 +28,21 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2024caa9-61c0-4d4c-bfa1-ea2ef000d3a8"
+      }
+    },
+    "owner": "mytx",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/2024caa9-61c0-4d4c-bfa1-ea2ef000d3a8"
+    }
   }
 }

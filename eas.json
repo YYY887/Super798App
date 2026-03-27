@@ -7,12 +7,14 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "ios": {
         "simulator": false
-      }
+      },
+      "channel": "production"
     }
   }
 }
