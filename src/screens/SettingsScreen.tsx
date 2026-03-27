@@ -108,7 +108,7 @@ export function SettingsScreen() {
               </View>
               <View style={[styles.widgetBadge, { backgroundColor: theme.surfaceSoft, borderColor: theme.border }]}>
                 <Text style={[styles.widgetBadgeText, { color: theme.textMuted }]}>
-                  {Platform.OS === 'android' ? 'Android 可用' : '仅 Android'}
+                  {Platform.OS === 'ios' ? 'iOS 可用' : '仅 iOS'}
                 </Text>
               </View>
             </View>
@@ -133,7 +133,7 @@ export function SettingsScreen() {
             <View style={styles.selectorHeader}>
               <Text style={[styles.selectorTitle, { color: theme.text }]}>喝水默认设备</Text>
               <Text style={[styles.selectorHint, { color: theme.textMuted }]}>
-                小组件点击“喝水”时会直接用这个设备
+                iOS 小组件点击“喝水”时会直接用这个设备
               </Text>
             </View>
 

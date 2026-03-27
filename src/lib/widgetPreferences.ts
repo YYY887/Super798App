@@ -9,7 +9,7 @@ type WidgetPreferencesModuleType = {
 const moduleRef = NativeModules.WidgetPreferences as WidgetPreferencesModuleType | undefined;
 
 export async function syncWidgetDevice(deviceId: string, deviceName: string) {
-  if (Platform.OS !== 'android' || !moduleRef) {
+  if ((Platform.OS !== 'android' && Platform.OS !== 'ios') || !moduleRef) {
     return;
   }
 
@@ -26,7 +26,7 @@ export async function syncWidgetDevice(deviceId: string, deviceName: string) {
 }
 
 export async function refreshNativeWidget() {
-  if (Platform.OS !== 'android' || !moduleRef) {
+  if ((Platform.OS !== 'android' && Platform.OS !== 'ios') || !moduleRef) {
     return;
   }
 
