@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "wb.uniysc1547.tool1",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

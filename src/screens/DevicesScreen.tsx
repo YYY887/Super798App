@@ -19,12 +19,14 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppData } from '../context/AppDataContext';
+import { useAppNavigation } from '../context/AppNavigationContext';
 import { useTheme } from '../context/ThemeContext';
 import { formatLiters, formatName } from '../lib/utils';
 
 export function DevicesScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { setRoute } = useAppNavigation();
   const {
     loading,
     actionLoading,
@@ -97,13 +99,7 @@ export function DevicesScreen() {
   }, [clearMessage, message]);
 
   async function handleOpenScan() {
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) return;
-    }
-
-    setScanning(true);
-    setScanVisible(true);
+    setRoute('scan');
   }
 
   async function handleScan(deviceRaw: string) {

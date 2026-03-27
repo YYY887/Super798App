@@ -10,6 +10,7 @@ import { DevicesScreen } from './screens/DevicesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { RecordsScreen } from './screens/RecordsScreen';
+import { ScanScreen } from './screens/ScanScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 
 function AppShell() {
@@ -106,6 +107,7 @@ function Navigator() {
         <View style={[styles.pageBody, { paddingBottom: 60 + Math.max(insets.bottom, 8) }]}>
           <Animated.View style={[styles.pageTransition, pageAnimatedStyle]}>
             {route === 'devices' ? <DevicesScreen /> : null}
+            {route === 'scan' ? <ScanScreen /> : null}
             {route === 'records' ? <RecordsScreen /> : null}
             {route === 'profile' ? <ProfileScreen /> : null}
           </Animated.View>
@@ -118,6 +120,12 @@ function Navigator() {
               label="设备"
               active={route === 'devices'}
               onPress={() => setRoute('devices')}
+            />
+            <TabItem
+              kind="scan"
+              label="扫码"
+              active={route === 'scan'}
+              onPress={() => setRoute('scan')}
             />
             <TabItem
               kind="records"
@@ -144,7 +152,7 @@ function TabItem({
   active,
   onPress,
 }: {
-  kind: 'devices' | 'records' | 'profile';
+  kind: 'devices' | 'scan' | 'records' | 'profile';
   label: string;
   active: boolean;
   onPress: () => void;
@@ -155,6 +163,7 @@ function TabItem({
     <Pressable
       style={[
         styles.tabItem,
+        kind === 'scan' ? styles.tabItemScan : null,
         active ? styles.tabItemActive : null,
         active ? { backgroundColor: theme.primarySoft, borderColor: theme.primarySoftBorder } : null,
       ]}
@@ -172,7 +181,7 @@ function TabGlyph({
   kind,
   active,
 }: {
-  kind: 'devices' | 'records' | 'profile';
+  kind: 'devices' | 'scan' | 'records' | 'profile';
   active: boolean;
 }) {
   const { theme } = useTheme();
@@ -195,6 +204,18 @@ function TabGlyph({
       <View style={[styles.glyphClock, { borderColor: theme.icon }, active ? { borderColor: theme.primary } : null]}>
         <View style={[styles.glyphClockHandShort, { backgroundColor: theme.icon }, active ? { backgroundColor: theme.primary } : null]} />
         <View style={[styles.glyphClockHandLong, { backgroundColor: theme.icon }, active ? { backgroundColor: theme.primary } : null]} />
+      </View>
+    );
+  }
+
+  if (kind === 'scan') {
+    return (
+      <View style={styles.glyphScanWrap}>
+        <View style={[styles.glyphScanCorner, styles.glyphScanTopLeft, { borderColor: active ? theme.primary : theme.icon }]} />
+        <View style={[styles.glyphScanCorner, styles.glyphScanTopRight, { borderColor: active ? theme.primary : theme.icon }]} />
+        <View style={[styles.glyphScanCorner, styles.glyphScanBottomLeft, { borderColor: active ? theme.primary : theme.icon }]} />
+        <View style={[styles.glyphScanCorner, styles.glyphScanBottomRight, { borderColor: active ? theme.primary : theme.icon }]} />
+        <View style={[styles.glyphScanLine, { backgroundColor: active ? theme.primary : theme.icon }]} />
       </View>
     );
   }
@@ -298,6 +319,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 7,
   },
+  tabItemScan: {
+    flex: 1.08,
+  },
   tabItemActive: {
     backgroundColor: 'rgba(208, 236, 255, 0.78)',
     borderWidth: 1,
@@ -352,6 +376,48 @@ const styles = StyleSheet.create({
   /* --- 我的 (用户 图标) --- */
   glyphPersonContainer: {
     alignItems: 'center',
+  },
+  glyphScanWrap: {
+    width: 22,
+    height: 22,
+    position: 'relative',
+  },
+  glyphScanCorner: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+  },
+  glyphScanTopLeft: {
+    top: 1,
+    left: 1,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+  },
+  glyphScanTopRight: {
+    top: 1,
+    right: 1,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+  },
+  glyphScanBottomLeft: {
+    left: 1,
+    bottom: 1,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+  },
+  glyphScanBottomRight: {
+    right: 1,
+    bottom: 1,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+  },
+  glyphScanLine: {
+    position: 'absolute',
+    left: 4,
+    right: 4,
+    top: 10,
+    height: 2,
+    borderRadius: 999,
   },
   glyphPersonHead: {
     width: 8,
