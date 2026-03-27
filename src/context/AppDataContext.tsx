@@ -62,6 +62,7 @@ type AppDataContextValue = {
   refreshDevices: () => Promise<void>;
   refreshRecords: () => Promise<void>;
   startDrinking: () => Promise<void>;
+  startDrinkingByDeviceId: (deviceId: string) => Promise<void>;
   stopDrinking: () => Promise<void>;
   bindDevice: (deviceId: string) => Promise<boolean>;
   removeDevice: (deviceId: string) => Promise<boolean>;
@@ -507,6 +508,7 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
         refreshDevices,
         refreshRecords,
         startDrinking: startDrinkingAction,
+        startDrinkingByDeviceId: startDrinkingById,
         stopDrinking: stopDrinkingAction,
         bindDevice: bindDeviceAction,
         removeDevice: removeDeviceAction,

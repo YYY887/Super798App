@@ -1,6 +1,8 @@
 const TOKEN_KEY = 'drink_token';
 const DEVICE_REMARK_PREFIX = 'device_remark_';
 const DARK_MODE_KEY = 'ui_dark_mode';
+const WIDGET_DEVICE_ID_KEY = 'widget_device_id';
+const WIDGET_DEVICE_NAME_KEY = 'widget_device_name';
 
 const memoryStore = new Map<string, string>();
 
@@ -98,4 +100,28 @@ export async function setStoredDarkMode(enabled: boolean) {
   }
 
   return setItem(DARK_MODE_KEY, '1');
+}
+
+export async function getStoredWidgetDeviceId() {
+  return getItem(WIDGET_DEVICE_ID_KEY);
+}
+
+export async function setStoredWidgetDeviceId(deviceId: string) {
+  if (!deviceId) {
+    return deleteItem(WIDGET_DEVICE_ID_KEY);
+  }
+
+  return setItem(WIDGET_DEVICE_ID_KEY, deviceId);
+}
+
+export async function getStoredWidgetDeviceName() {
+  return getItem(WIDGET_DEVICE_NAME_KEY);
+}
+
+export async function setStoredWidgetDeviceName(deviceName: string) {
+  if (!deviceName) {
+    return deleteItem(WIDGET_DEVICE_NAME_KEY);
+  }
+
+  return setItem(WIDGET_DEVICE_NAME_KEY, deviceName);
 }

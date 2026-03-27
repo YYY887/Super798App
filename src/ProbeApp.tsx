@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Linking, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppNavigationProvider, useAppNavigation } from './context/AppNavigationContext';
-import { AppDataProvider } from './context/AppDataContext';
+import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { DevicesScreen } from './screens/DevicesScreen';
@@ -12,7 +12,8 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { RecordsScreen } from './screens/RecordsScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { prepareUpdateIfAvailable } from './lib/updates';
+import { getStoredWidgetDeviceId } from './lib/storage';
+import { refreshNativeWidget } from './lib/widgetPreferences';
 
 function AppShell() {
   const { bootstrapped, token, signOut } = useAuth();
@@ -43,6 +44,7 @@ function Navigator() {
   const { token } = useAuth();
   const { route, setRoute } = useAppNavigation();
   const { theme } = useTheme();
+  const { devices, selectedId, setSelectedId, startDrinkingByDeviceId } = useAppData();
   const transition = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -56,14 +58,65 @@ function Navigator() {
   }, [route, transition]);
 
   useEffect(() => {
-    /*
-     * 2026-03-27:
-     * 启动阶段改成静默检查热更新，不再阻塞首屏进入。
-     * 这里仍然提前拉取可用更新，但不自动 reload，避免用户每次打开都先看到更新检查页，
-     * 也避免在弱网下把“启动慢”误判成业务卡顿。
-     */
-    void prepareUpdateIfAvailable();
-  }, []);
+    void refreshNativeWidget();
+  }, [devices, selectedId, theme.background]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    let alive = true;
+
+    async function resolveWidgetDeviceId() {
+      const storedId = await getStoredWidgetDeviceId();
+      if (storedId && devices.some((item) => item.id === storedId)) {
+        return storedId;
+      }
+
+      return selectedId || devices[0]?.id || '';
+    }
+
+    async function handleWidgetUrl(url: string | null) {
+      if (!alive || !url) {
+        return;
+      }
+
+      if (!url.startsWith('super798://widget/')) {
+        return;
+      }
+
+      if (url.includes('/scan')) {
+        setRoute('scan');
+        return;
+      }
+
+      if (url.includes('/drink')) {
+        const deviceId = await resolveWidgetDeviceId();
+        if (!deviceId) {
+          setRoute('devices');
+          return;
+        }
+
+        setSelectedId(deviceId);
+        setRoute('devices');
+        await startDrinkingByDeviceId(deviceId);
+      }
+    }
+
+    void Linking.getInitialURL().then((url) => {
+      void handleWidgetUrl(url);
+    });
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      void handleWidgetUrl(url);
+    });
+
+    return () => {
+      alive = false;
+      subscription.remove();
+    };
+  }, [devices, selectedId, setRoute, setSelectedId, startDrinkingByDeviceId, token]);
 
   const pageAnimatedStyle = {
     opacity: transition.interpolate({
