@@ -11,7 +11,7 @@ export function ProfileScreen() {
   const { theme } = useTheme();
   const { signOut } = useAuth();
   const { setRoute } = useAppNavigation();
-  const { account, devices, recordsTotal } = useAppData();
+  const { account, devices } = useAppData();
 
   async function handleLogout() {
     await signOut();
@@ -52,10 +52,6 @@ export function ProfileScreen() {
             <View style={[styles.heroStatItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Text style={[styles.heroStatLabel, { color: theme.textMuted }]}>设备</Text>
               <Text style={[styles.heroStatValue, { color: theme.primary }]}>{devices.length}</Text>
-            </View>
-            <View style={[styles.heroStatItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.heroStatLabel, { color: theme.textMuted }]}>记录</Text>
-              <Text style={[styles.heroStatValue, { color: theme.primary }]}>{recordsTotal}</Text>
             </View>
             <View style={[styles.heroStatItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Text style={[styles.heroStatLabel, { color: theme.textMuted }]}>积分</Text>

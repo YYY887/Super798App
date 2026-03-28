@@ -1,15 +1,15 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Easing, Linking, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppNavigationProvider, useAppNavigation } from './context/AppNavigationContext';
-import { AppDataProvider } from './context/AppDataContext';
+import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { parseShortcutUrl, ShortcutAction } from './lib/shortcuts';
 import { DevicesScreen } from './screens/DevicesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
-import { RecordsScreen } from './screens/RecordsScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 
@@ -42,7 +42,10 @@ function Navigator() {
   const { token } = useAuth();
   const { route, setRoute } = useAppNavigation();
   const { theme } = useTheme();
+  const { loading, devices, setSelectedId, startDrinkingByDeviceId } = useAppData();
   const transition = useRef(new Animated.Value(0)).current;
+  const [pendingShortcut, setPendingShortcut] = useState<ShortcutAction | null>(null);
+  const shortcutRunningRef = useRef(false);
 
   useEffect(() => {
     transition.setValue(0);
@@ -53,6 +56,65 @@ function Navigator() {
       useNativeDriver: true,
     }).start();
   }, [route, transition]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function restoreInitialShortcut() {
+      const initialUrl = await Linking.getInitialURL();
+      if (!mounted || !initialUrl) return;
+
+      const shortcut = parseShortcutUrl(initialUrl);
+      if (!shortcut) return;
+
+      setPendingShortcut(shortcut);
+    }
+
+    restoreInitialShortcut();
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      const shortcut = parseShortcutUrl(url);
+      if (!shortcut) return;
+
+      setPendingShortcut(shortcut);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pendingShortcut || !token || loading || shortcutRunningRef.current) {
+      return;
+    }
+
+    if (pendingShortcut.type === 'start') {
+      const deviceExists = devices.some((item) => item.id === pendingShortcut.deviceId);
+
+      if (!deviceExists) {
+        setPendingShortcut(null);
+        Alert.alert('快捷启动失败', '没有找到这个设备，请先确认设备仍在列表里');
+        return;
+      }
+
+      shortcutRunningRef.current = true;
+      setRoute('devices');
+      setSelectedId(pendingShortcut.deviceId);
+
+      /*
+       * 2026-03-28:
+       * 快捷指令拉起 App 时，目标是“进入前台后直接发起启动设备请求”，不要再要求用户
+       * 手动点第二次按钮。这里保留设备存在校验和前台切回设备页，后续如果改启动时机，
+       * 不能把冷启动场景下的自动执行改没。
+       */
+      void startDrinkingByDeviceId(pendingShortcut.deviceId).finally(() => {
+        shortcutRunningRef.current = false;
+        setPendingShortcut(null);
+      });
+    }
+  }, [devices, loading, pendingShortcut, setRoute, setSelectedId, startDrinkingByDeviceId, token]);
 
   const pageAnimatedStyle = {
     opacity: transition.interpolate({
@@ -108,7 +170,6 @@ function Navigator() {
           <Animated.View style={[styles.pageTransition, pageAnimatedStyle]}>
             {route === 'devices' ? <DevicesScreen /> : null}
             {route === 'scan' ? <ScanScreen /> : null}
-            {route === 'records' ? <RecordsScreen /> : null}
             {route === 'profile' ? <ProfileScreen /> : null}
           </Animated.View>
         </View>
@@ -126,12 +187,6 @@ function Navigator() {
               label="扫码"
               active={route === 'scan'}
               onPress={() => setRoute('scan')}
-            />
-            <TabItem
-              kind="records"
-              label="记录"
-              active={route === 'records'}
-              onPress={() => setRoute('records')}
             />
             <TabItem
               kind="profile"
@@ -152,7 +207,7 @@ function TabItem({
   active,
   onPress,
 }: {
-  kind: 'devices' | 'scan' | 'records' | 'profile';
+  kind: 'devices' | 'scan' | 'profile';
   label: string;
   active: boolean;
   onPress: () => void;
@@ -181,7 +236,7 @@ function TabGlyph({
   kind,
   active,
 }: {
-  kind: 'devices' | 'scan' | 'records' | 'profile';
+  kind: 'devices' | 'scan' | 'profile';
   active: boolean;
 }) {
   const { theme } = useTheme();
@@ -196,15 +251,6 @@ function TabGlyph({
           active ? { borderColor: theme.primary, backgroundColor: theme.primary } : null,
         ]}
       />
-    );
-  }
-
-  if (kind === 'records') {
-    return (
-      <View style={[styles.glyphClock, { borderColor: theme.icon }, active ? { borderColor: theme.primary } : null]}>
-        <View style={[styles.glyphClockHandShort, { backgroundColor: theme.icon }, active ? { backgroundColor: theme.primary } : null]} />
-        <View style={[styles.glyphClockHandLong, { backgroundColor: theme.icon }, active ? { backgroundColor: theme.primary } : null]} />
-      </View>
     );
   }
 

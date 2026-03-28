@@ -4,7 +4,6 @@ import {
   endDevice,
   getDevices,
   getDeviceStatus,
-  getRecords,
   startDevice,
   toggleFavo,
 } from '../lib/api';
@@ -34,20 +33,8 @@ type DeviceStatus = {
   status: number;
 };
 
-type RecordItem = {
-  id: string;
-  did: string;
-  dname?: string;
-  ep?: string;
-  start_at: number;
-  end_at?: number;
-  out_ml: number;
-  score?: number;
-};
-
 type AppDataContextValue = {
   loading: boolean;
-  recordsLoading: boolean;
   actionLoading: boolean;
   message: string;
   account: Account | null;
@@ -56,11 +43,8 @@ type AppDataContextValue = {
   isDrinking: boolean;
   deviceStatus: DeviceStatus | null;
   accScore: string;
-  records: RecordItem[];
-  recordsTotal: number;
   setSelectedId: (deviceId: string) => void;
   refreshDevices: () => Promise<void>;
-  refreshRecords: () => Promise<void>;
   startDrinking: () => Promise<void>;
   startDrinkingByDeviceId: (deviceId: string) => Promise<void>;
   stopDrinking: () => Promise<void>;
@@ -80,7 +64,6 @@ type AppDataProviderProps = {
 
 export function AppDataProvider({ children, token, onExpired }: AppDataProviderProps) {
   const [loading, setLoading] = useState(true);
-  const [recordsLoading, setRecordsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [account, setAccount] = useState<Account | null>(null);
@@ -89,13 +72,10 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
   const [isDrinking, setIsDrinking] = useState(false);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
   const [accScore, setAccScore] = useState('');
-  const [records, setRecords] = useState<RecordItem[]>([]);
-  const [recordsTotal, setRecordsTotal] = useState(0);
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const selectedIdRef = useRef('');
   const isDrinkingRef = useRef(false);
   const deviceStatusRef = useRef<DeviceStatus | null>(null);
-  const accScoreRef = useRef('');
   const accountRef = useRef<Account | null>(null);
   const devicesRef = useRef<Device[]>([]);
 
@@ -110,10 +90,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
   useEffect(() => {
     deviceStatusRef.current = deviceStatus;
   }, [deviceStatus]);
-
-  useEffect(() => {
-    accScoreRef.current = accScore;
-  }, [accScore]);
 
   useEffect(() => {
     accountRef.current = account;
@@ -141,7 +117,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
     if (!token) {
       cleanupTimer();
       setLoading(false);
-      setRecordsLoading(false);
       setActionLoading(false);
       setMessage('');
       setAccount(null);
@@ -150,8 +125,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
       setIsDrinking(false);
       setDeviceStatus(null);
       setAccScore('');
-      setRecords([]);
-      setRecordsTotal(0);
       return;
     }
 
@@ -314,7 +287,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
 
         cleanupTimer();
 
-        const outMl = gene.out ?? 0;
         setIsDrinking(false);
         setDeviceStatus(null);
         setDevices((current) =>
@@ -322,7 +294,7 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
         );
 
         try {
-          await endDevice(selectedId, token, account.id, outMl, accScore);
+          await endDevice(selectedId, token);
         } catch {
           // ignore
         }
@@ -356,9 +328,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
       const response = await startDevice(
         deviceId,
         token,
-        accountRef.current.id,
-        currentDevice.name,
-        currentDevice.ep,
       );
 
       if (response.code === -99) {
@@ -399,9 +368,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
       await endDevice(
         deviceId,
         token,
-        accountRef.current.id,
-        deviceStatusRef.current?.out ?? 0,
-        accScoreRef.current,
       );
       setIsDrinking(false);
       setDeviceStatus(null);
@@ -414,22 +380,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
       showMessage('结算可能未成功，请检查');
     } finally {
       setActionLoading(false);
-    }
-  }
-
-  async function refreshRecords() {
-    if (!account?.id) return;
-
-    setRecordsLoading(true);
-
-    try {
-      const response = await getRecords(account.id, 1, 50);
-      setRecords(response.items || []);
-      setRecordsTotal(response.total || 0);
-    } catch {
-      showMessage('加载记录失败');
-    } finally {
-      setRecordsLoading(false);
     }
   }
 
@@ -493,7 +443,6 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
     <AppDataContext.Provider
       value={{
         loading,
-        recordsLoading,
         actionLoading,
         message,
         account,
@@ -502,11 +451,8 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
         isDrinking,
         deviceStatus,
         accScore,
-        records,
-        recordsTotal,
         setSelectedId,
         refreshDevices,
-        refreshRecords,
         startDrinking: startDrinkingAction,
         startDrinkingByDeviceId: startDrinkingById,
         stopDrinking: stopDrinkingAction,

@@ -1,13 +1,14 @@
-const BASE_URL = 'https://water.mytx.fun';
+const BASE_URL = 'https://i.ilife798.com/api/v1/';
 
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'DELETE';
   params?: Record<string, string | number | boolean | undefined | null>;
   body?: unknown;
+  token?: string;
 };
 
 async function request<T>(path: string, options: ApiOptions = {}) {
-  const { method = 'GET', params, body } = options;
+  const { method = 'GET', params, body, token } = options;
   const url = new URL(path, BASE_URL);
 
   if (params) {
@@ -19,7 +20,10 @@ async function request<T>(path: string, options: ApiOptions = {}) {
 
   const response = await fetch(url.toString(), {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: token } : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -82,69 +86,55 @@ export type DeviceStatusResponse = {
   };
 };
 
-export type RecordsResponse = {
-  total: number;
-  page: number;
-  page_size: number;
-  items: Array<{
-    id: string;
-    did: string;
-    dname?: string;
-    ep?: string;
-    start_at: number;
-    end_at?: number;
-    out_ml: number;
-    score?: number;
-  }>;
-};
-
 export function getCaptchaUrl(s: string, r: string) {
-  const url = new URL('/captcha', BASE_URL);
+  const url = new URL('captcha/', BASE_URL);
   url.searchParams.set('s', s);
   url.searchParams.set('r', r);
   return url.toString();
 }
 
 export function sendLoginCode(s: string, authCode: string, un: string) {
-  return request<{ code: number; msg?: string }>('/login/code', {
+  return request<{ code: number; msg?: string }>('acc/login/code', {
     method: 'POST',
     body: { s, authCode, un },
   });
 }
 
 export function login(un: string, authCode: string) {
-  return request<LoginResponse>('/login', {
+  return request<LoginResponse>('acc/login', {
     method: 'POST',
     body: { openCode: '', authCode, un, cid: 'drinkwaterapp123456789' },
   });
 }
 
 export function getDevices(token: string) {
-  return request<DevicesResponse>('/devices', { params: { token } });
+  return request<DevicesResponse>('ui/app/master', { token });
 }
 
 export function toggleFavo(did: string, remove: boolean, token: string) {
-  return request<{ code: number; msg?: string }>('/device/favo', {
-    params: { did, remove, token },
+  return request<{ code: number; msg?: string }>('dev/favo', {
+    params: { did, remove },
+    token,
   });
 }
 
-export function startDevice(did: string, token: string, uid: string, dname: string, ep: string) {
-  return request<{ code: number; msg?: string }>('/device/start', {
-    params: { did, token, uid, dname, ep },
+export function startDevice(did: string, token: string) {
+  return request<{ code: number; msg?: string }>('dev/start', {
+    params: { did, upgrade: true, rcp: false, stype: 5 },
+    token,
   });
 }
 
-export function endDevice(did: string, token: string, uid: string, out_ml: number, score: string) {
-  return request<{ code: number; msg?: string }>('/device/end', {
-    params: { did, token, uid, out_ml, score },
+export function endDevice(did: string, token: string) {
+  return request<{ code: number; msg?: string }>('dev/end', {
+    params: { did },
+    token,
   });
 }
 
 export function getDeviceStatus(did: string, token: string) {
-  return request<DeviceStatusResponse>('/device/status', { params: { did, token } });
-}
-
-export function getRecords(uid: string, page: number, page_size: number) {
-  return request<RecordsResponse>('/records', { params: { uid, page, page_size } });
+  return request<DeviceStatusResponse>('ui/app/dev/status', {
+    params: { did, more: true, promo: false },
+    token,
+  });
 }

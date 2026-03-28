@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Animated,
   Alert,
+  Clipboard,
   Easing,
   Image,
   Modal,
@@ -19,6 +20,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppData } from '../context/AppDataContext';
+import { buildStartShortcutUrl } from '../lib/shortcuts';
 import { useTheme } from '../context/ThemeContext';
 import { formatLiters, formatName } from '../lib/utils';
 
@@ -133,17 +135,21 @@ export function DevicesScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['取消', '编辑备注', '删除设备'],
+          options: ['取消', '快捷启动', '编辑备注', '删除设备'],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: 2,
+          destructiveButtonIndex: 3,
           userInterfaceStyle: 'light',
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
-            handleOpenRemark(deviceId);
+            void handleCopyShortcut(deviceId);
           }
 
           if (buttonIndex === 2) {
+            handleOpenRemark(deviceId);
+          }
+
+          if (buttonIndex === 3) {
             void handleDeleteDevice(deviceId);
           }
         },
@@ -153,9 +159,29 @@ export function DevicesScreen() {
 
     Alert.alert(formatName(device.name), undefined, [
       { text: '取消', style: 'cancel' },
+      { text: '快捷启动', onPress: () => void handleCopyShortcut(deviceId) },
       { text: '编辑备注', onPress: () => handleOpenRemark(deviceId) },
       { text: '删除设备', style: 'destructive', onPress: () => void handleDeleteDevice(deviceId) },
     ]);
+  }
+
+  async function handleCopyShortcut(deviceId: string) {
+    const device = devices.find((item) => item.id === deviceId);
+    if (!device) return;
+
+    try {
+      /*
+       * 2026-03-28:
+       * 这里先复用 React Native 当前自带的 Clipboard 模块，目的是不新增依赖也能把
+       * “设备专属快捷启动链接”直接塞进系统剪贴板。后续如果升级到彻底移除该模块的
+       * React Native 版本，改这里时要一起替换成长驻可用的剪贴板实现，不能把复制入口改坏。
+       */
+      Clipboard.setString(buildStartShortcutUrl(deviceId));
+      setEditingDeviceId('');
+      Alert.alert('已复制', `${formatName(device.name)} 的快捷启动链接已复制`);
+    } catch {
+      Alert.alert('复制失败', '当前环境暂时无法复制快捷链接');
+    }
   }
 
   async function handleDeleteDevice(deviceId: string) {

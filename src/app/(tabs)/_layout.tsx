@@ -34,12 +34,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="records"
-        options={{
-          title: '记录',
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: '我的',
