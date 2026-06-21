@@ -7,7 +7,9 @@ import {
   startDevice,
   toggleFavo,
 } from '../lib/api';
+import { notifyDrinkStarted, notifyDrinkStopped } from '../lib/notifications';
 import { getDeviceRemark, setDeviceRemark } from '../lib/storage';
+import { formatName } from '../lib/utils';
 
 type Account = {
   id: string;
@@ -300,6 +302,8 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
         }
 
         showMessage('接水完成，已自动结算');
+        const stoppedDevice = devicesRef.current.find((item) => item.id === selectedId);
+        void notifyDrinkStopped(stoppedDevice ? formatName(stoppedDevice.remark || stoppedDevice.name) : undefined);
       } catch {
         // ignore
       }
@@ -343,6 +347,7 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
       setSelectedId(deviceId);
       setIsDrinking(true);
       showMessage('开始接水');
+      void notifyDrinkStarted(formatName(currentDevice.remark || currentDevice.name));
       startStatusCheck();
     } catch {
       showMessage('操作失败');
@@ -376,6 +381,8 @@ export function AppDataProvider({ children, token, onExpired }: AppDataProviderP
       );
       setSelectedId(deviceId);
       showMessage('已结算');
+      const stoppedDevice = devicesRef.current.find((item) => item.id === deviceId);
+      void notifyDrinkStopped(stoppedDevice ? formatName(stoppedDevice.remark || stoppedDevice.name) : undefined);
     } catch {
       showMessage('结算可能未成功，请检查');
     } finally {

@@ -1,6 +1,7 @@
 const TOKEN_KEY = 'drink_token';
 const DEVICE_REMARK_PREFIX = 'device_remark_';
 const DARK_MODE_KEY = 'ui_dark_mode';
+const WATER_REMINDER_KEY = 'water_reminder_config';
 
 const memoryStore = new Map<string, string>();
 
@@ -98,4 +99,30 @@ export async function setStoredDarkMode(enabled: boolean) {
   }
 
   return setItem(DARK_MODE_KEY, '1');
+}
+
+export type WaterReminderConfig = {
+  enabled: boolean;
+  hour: number;
+  minute: number;
+  notificationId?: string;
+};
+
+export async function getStoredWaterReminder() {
+  const rawValue = await getItem(WATER_REMINDER_KEY);
+  if (!rawValue) return null;
+
+  try {
+    return JSON.parse(rawValue) as WaterReminderConfig;
+  } catch {
+    return null;
+  }
+}
+
+export async function setStoredWaterReminder(config: WaterReminderConfig) {
+  return setItem(WATER_REMINDER_KEY, JSON.stringify(config));
+}
+
+export async function clearStoredWaterReminder() {
+  return deleteItem(WATER_REMINDER_KEY);
 }

@@ -84,7 +84,6 @@ export async function fetchGoodsIdBySn(sn: string) {
 
   return String(goodsId);
 }
-
 export function buildAlipayGoodsUrl(goodsId: string) {
   const page = `pages/chooseShowerMachine/showerMachine/showerMachine?__appxPageId=8&goodsId=${goodsId}`;
   return `alipays://platformapi/startapp?appId=2018072460764274&page=${encodeURIComponent(page)}`;

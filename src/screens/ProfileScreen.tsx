@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Clipboard, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,7 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 
 export function ProfileScreen() {
   const { theme } = useTheme();
-  const { signOut } = useAuth();
+  const { signOut, token } = useAuth();
   const { setRoute } = useAppNavigation();
   const { account, devices } = useAppData();
 
@@ -22,9 +22,18 @@ export function ProfileScreen() {
     setRoute('settings');
   }
 
-  function handleComingSoon() {
-    // 先占位，后续真正接设置页时直接替换这里的跳转逻辑。
-    alert('敬请期待');
+  function handleCopyToken() {
+    if (!token) {
+      Alert.alert('暂无 Token', '当前还没有登录 798 账户');
+      return;
+    }
+
+    try {
+      Clipboard.setString(token);
+      Alert.alert('已复制', '当前 798 Token 已复制到剪贴板');
+    } catch {
+      Alert.alert('复制失败', '当前环境暂时无法复制 Token');
+    }
   }
 
   return (
@@ -69,7 +78,15 @@ export function ProfileScreen() {
             <Text style={[styles.menuArrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
 
-          <Pressable style={styles.menuItem} onPress={handleComingSoon}>
+          <Pressable style={styles.menuItem} onPress={handleCopyToken}>
+            <View style={styles.menuTextWrap}>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>复制 798 Token</Text>
+              <Text style={[styles.menuHint, { color: theme.textMuted }]}>复制当前登录凭证，方便下次用 Token 进入</Text>
+            </View>
+            <Text style={[styles.menuArrow, { color: theme.textSoft }]}>›</Text>
+          </Pressable>
+
+          <Pressable style={styles.menuItem} onPress={() => alert('敬请期待')}>
             <View>
               <Text style={[styles.menuTitle, { color: theme.text }]}>消息中心</Text>
               <Text style={[styles.menuHint, { color: theme.textMuted }]}>系统通知和账户提醒</Text>
@@ -77,7 +94,7 @@ export function ProfileScreen() {
             <Text style={[styles.menuArrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
 
-          <Pressable style={styles.menuItem} onPress={handleComingSoon}>
+          <Pressable style={styles.menuItem} onPress={() => setRoute('about')}>
             <View>
               <Text style={[styles.menuTitle, { color: theme.text }]}>关于 Super798</Text>
               <Text style={[styles.menuHint, { color: theme.textMuted }]}>版本信息与功能说明</Text>
@@ -186,6 +203,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#22325c',
     fontWeight: '700',
+  },
+  menuTextWrap: {
+    flex: 1,
   },
   menuHint: {
     marginTop: 4,

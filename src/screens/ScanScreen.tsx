@@ -13,6 +13,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '../context/ThemeContext';
+import { notifyScanFailed, notifyScanSuccess } from '../lib/notifications';
 import { extractSnFromScan, openAlipayDeviceBySn } from '../lib/qiekj';
 
 export function ScanScreen() {
@@ -76,9 +77,11 @@ export function ScanScreen() {
     try {
       const { goodsId } = await openAlipayDeviceBySn(sn);
       setStatus(`即将跳转支付宝，goodsId：${goodsId}`);
+      void notifyScanSuccess(goodsId);
     } catch (error) {
       const message = error instanceof Error ? error.message : '跳转失败';
       setStatus(message);
+      void notifyScanFailed(message);
       Alert.alert('扫码失败', message);
     } finally {
       setTimeout(() => {

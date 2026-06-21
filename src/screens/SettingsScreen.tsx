@@ -1,14 +1,14 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import Constants from 'expo-constants';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppNavigationContext';
 import { useTheme } from '../context/ThemeContext';
 
+const APP_VERSION = 'v2.0.1';
+
 export function SettingsScreen() {
   const { setRoute } = useAppNavigation();
   const { isDark, setIsDark, theme } = useTheme();
-  const version = Constants.expoConfig?.version ?? '1.0.0';
 
   function handleComingSoon() {
     alert('敬请期待');
@@ -45,10 +45,18 @@ export function SettingsScreen() {
         </View>
 
         <View style={[styles.group, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={handleComingSoon}>
+          <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={() => setRoute('widget-preview')}>
             <View style={styles.itemTextWrap}>
-              <Text style={[styles.itemTitle, { color: theme.text }]}>通知设置</Text>
-              <Text style={[styles.itemHint, { color: theme.textMuted }]}>消息提醒和系统通知</Text>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>预览小组件</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>查看桌面小组件显示效果并同步数据</Text>
+            </View>
+            <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
+          </Pressable>
+
+          <Pressable style={[styles.item, { borderBottomColor: theme.borderSoft }]} onPress={() => setRoute('water-reminder')}>
+            <View style={styles.itemTextWrap}>
+              <Text style={[styles.itemTitle, { color: theme.text }]}>喝水提醒</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>自定义每天提醒喝水的时间</Text>
             </View>
             <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
@@ -74,7 +82,7 @@ export function SettingsScreen() {
           <View style={[styles.item, { borderBottomColor: theme.borderSoft }]}>
             <View style={styles.itemTextWrap}>
               <Text style={[styles.itemTitle, { color: theme.text }]}>当前版本</Text>
-              <Text style={[styles.itemHint, { color: theme.textMuted }]}>当前版本 {version}</Text>
+              <Text style={[styles.itemHint, { color: theme.textMuted }]}>当前版本 {APP_VERSION}</Text>
             </View>
           </View>
 
@@ -86,7 +94,7 @@ export function SettingsScreen() {
             <Text style={[styles.arrow, { color: theme.textSoft }]}>›</Text>
           </Pressable>
 
-          <Pressable style={styles.item} onPress={handleComingSoon}>
+          <Pressable style={styles.item} onPress={() => setRoute('about')}>
             <View style={styles.itemTextWrap}>
               <Text style={[styles.itemTitle, { color: theme.text }]}>关于 Super798</Text>
               <Text style={[styles.itemHint, { color: theme.textMuted }]}>版本信息与更新说明</Text>

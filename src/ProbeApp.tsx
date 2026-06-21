@@ -7,11 +7,14 @@ import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { parseShortcutUrl, ShortcutAction } from './lib/shortcuts';
+import { AboutScreen } from './screens/AboutScreen';
 import { DevicesScreen } from './screens/DevicesScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { WaterReminderScreen } from './screens/WaterReminderScreen';
+import { WidgetPreviewScreen } from './screens/WidgetPreviewScreen';
 
 function AppShell() {
   const { bootstrapped, token, signOut } = useAuth();
@@ -134,10 +137,10 @@ function Navigator() {
           outputRange: [6, 0],
         }),
       },
-    ],
+    ] as const,
   };
 
-  if (!token) {
+  if (!token && route !== 'scan') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top']}>
         <StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} />
@@ -153,6 +156,36 @@ function Navigator() {
         <StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} />
         <View style={[styles.topSafeMask, { backgroundColor: theme.background }]} />
         <SettingsScreen />
+      </SafeAreaView>
+    );
+  }
+
+  if (route === 'widget-preview') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top']}>
+        <StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} />
+        <View style={[styles.topSafeMask, { backgroundColor: theme.background }]} />
+        <WidgetPreviewScreen />
+      </SafeAreaView>
+    );
+  }
+
+  if (route === 'about') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top']}>
+        <StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} />
+        <View style={[styles.topSafeMask, { backgroundColor: theme.background }]} />
+        <AboutScreen />
+      </SafeAreaView>
+    );
+  }
+
+  if (route === 'water-reminder') {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top']}>
+        <StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} />
+        <View style={[styles.topSafeMask, { backgroundColor: theme.background }]} />
+        <WaterReminderScreen />
       </SafeAreaView>
     );
   }
@@ -176,12 +209,14 @@ function Navigator() {
 
         <View style={[styles.tabBarWrap, { bottom: Math.max(insets.bottom, 8) }]}>
           <View style={[styles.tabBar, { backgroundColor: theme.tabBar, borderColor: theme.tabBarBorder }]}>
-            <TabItem
-              kind="devices"
-              label="设备"
-              active={route === 'devices'}
-              onPress={() => setRoute('devices')}
-            />
+            {token ? (
+              <TabItem
+                kind="devices"
+                label="设备"
+                active={route === 'devices'}
+                onPress={() => setRoute('devices')}
+              />
+            ) : null}
             <TabItem
               kind="scan"
               label="扫码"
@@ -190,9 +225,9 @@ function Navigator() {
             />
             <TabItem
               kind="profile"
-              label="我的"
+              label={token ? '我的' : '登录'}
               active={route === 'profile'}
-              onPress={() => setRoute('profile')}
+              onPress={() => setRoute(token ? 'profile' : 'login')}
             />
           </View>
         </View>

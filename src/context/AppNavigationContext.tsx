@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useState } from 'react';
 
-export type AppRoute = 'login' | 'devices' | 'scan' | 'profile' | 'settings';
+export type AppRoute = 'login' | 'devices' | 'scan' | 'profile' | 'settings' | 'widget-preview' | 'about' | 'water-reminder';
 
 type AppNavigationContextValue = {
   route: AppRoute;

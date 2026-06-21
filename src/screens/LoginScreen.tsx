@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -28,6 +29,8 @@ export function LoginScreen() {
   const [captchaS, setCaptchaS] = useState('');
   const [captchaUri, setCaptchaUri] = useState('');
   const [smsCode, setSmsCode] = useState('');
+  const [tokenInput, setTokenInput] = useState('');
+  const [tokenModalVisible, setTokenModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -101,6 +104,34 @@ export function LoginScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleTokenLogin() {
+    const nextToken = tokenInput.trim();
+    setError('');
+
+    if (!nextToken) {
+      setError('请输入 Token');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await signIn(nextToken);
+      setTokenModalVisible(false);
+      setTokenInput('');
+      setRoute('devices');
+    } catch {
+      setError('Token 保存失败，请重试');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleGuestScan() {
+    setError('');
+    setRoute('scan');
   }
 
   return (
@@ -192,8 +223,72 @@ export function LoginScreen() {
           )}
 
           {error ? <Text style={[styles.error, { color: theme.dangerText }]}>{error}</Text> : null}
+
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          <Pressable
+            style={[styles.outlineButton, { borderColor: theme.border }]}
+            onPress={() => {
+              setError('');
+              setTokenModalVisible(true);
+            }}
+            disabled={loading}
+          >
+            <Text style={[styles.outlineButtonText, { color: theme.text }]}>使用 Token 进入</Text>
+          </Pressable>
+
+          <Pressable style={styles.secondaryButton} onPress={handleGuestScan} disabled={loading}>
+            <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>不登录，仅使用胖乖扫码</Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={tokenModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTokenModalVisible(false)}
+      >
+        <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.tokenModal, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleWrap}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Token 登录</Text>
+                <Text style={[styles.modalHint, { color: theme.textMuted }]}>粘贴已获取的 798 Token，保存后直接进入设备页。</Text>
+              </View>
+
+              <View style={styles.modalActions}>
+                <Pressable
+                  style={[styles.modalButton, { borderColor: theme.border }]}
+                  onPress={() => setTokenModalVisible(false)}
+                  disabled={loading}
+                >
+                  <Text style={[styles.modalButtonText, { color: theme.textMuted }]}>取消</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalButton, styles.modalPrimaryButton, { backgroundColor: theme.actionBlueStrong }]}
+                  onPress={handleTokenLogin}
+                  disabled={loading}
+                >
+                  <Text style={styles.modalPrimaryButtonText}>{loading ? '进入中...' : '进入'}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <TextInput
+              style={[styles.input, styles.tokenInput, { backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }]}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="粘贴 798 Token"
+              placeholderTextColor="#8da0b3"
+              value={tokenInput}
+              onChangeText={setTokenInput}
+            />
+          </View>
+
+          <Pressable style={styles.modalDismissArea} onPress={() => setTokenModalVisible(false)} />
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -262,6 +357,10 @@ const styles = StyleSheet.create({
     color: '#22325c',
     fontSize: 15,
   },
+  tokenInput: {
+    height: 52,
+    fontSize: 13,
+  },
   captchaRow: {
     flexDirection: 'row',
     gap: 10,
@@ -298,6 +397,76 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  outlineButton: {
+    height: 50,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outlineButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  divider: {
+    height: 1,
+    opacity: 0.8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 18,
+    paddingTop: 130,
+  },
+  modalDismissArea: {
+    flex: 1,
+  },
+  tokenModal: {
+    width: '100%',
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    gap: 14,
+  },
+  modalHeader: {
+    gap: 14,
+  },
+  modalTitleWrap: {
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  modalHint: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalPrimaryButton: {
+    borderWidth: 0,
+  },
+  modalButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalPrimaryButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: '700',
   },
   secondaryButton: {
